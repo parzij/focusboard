@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/parzij/focusboard/backend/internal/app"
 	"github.com/parzij/focusboard/backend/internal/config"
-	"github.com/parzij/focusboard/backend/internal/httpx"
 	"github.com/parzij/focusboard/backend/internal/platform/postgres"
 )
 
@@ -49,9 +49,13 @@ func run(ctx context.Context) error {
 		slog.Warn("PostgreSQL unavailable at startup")
 	}
 
+	router, err := app.Router(cfg, pool)
+	if err != nil {
+		return errors.New("could not initialize authentication")
+	}
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           httpx.NewRouter(checkDatabase),
+		Handler:           router,
 		ReadHeaderTimeout: cfg.ReadHeader,
 		ReadTimeout:       cfg.Read,
 		WriteTimeout:      cfg.Write,

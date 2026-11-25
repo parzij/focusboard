@@ -60,7 +60,8 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - run: bash scripts/test-compose.sh
+      - name: Verify Compose lifecycle and HTTP authentication
+        run: bash scripts/test-compose.sh
 
   frontend:
     name: Frontend

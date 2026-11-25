@@ -21,6 +21,7 @@ type Database struct {
 
 type Config struct {
 	Database   Database
+	Auth       Auth
 	HTTPAddr   string
 	ReadHeader time.Duration
 	Read       time.Duration
@@ -70,7 +71,8 @@ func load(get func(string) string) (Config, error) {
 	if db.CheckTimeout >= cfg.Write {
 		return cfg, fmt.Errorf("DB_CHECK_TIMEOUT must be shorter than HTTP_WRITE_TIMEOUT")
 	}
-	return cfg, nil
+	cfg.Auth, err = loadAuth(get, cfg.Write)
+	return cfg, err
 }
 
 func LoadDatabase() (Database, error) {

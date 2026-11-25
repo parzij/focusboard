@@ -8,6 +8,10 @@ export POSTGRES_DB=focusboard_test POSTGRES_USER=focusboard_test
 export POSTGRES_PASSWORD=compose-smoke-only
 export DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@db:5432/$POSTGRES_DB?sslmode=disable"
 export API_PORT=0 API_CONTAINER_PORT=8080
+export APP_ENV=test APP_ORIGIN=http://127.0.0.1:8080 COOKIE_SECURE=false
+export REFRESH_COOKIE_NAME=focusboard_refresh
+export JWT_SECRET
+JWT_SECRET=$(openssl rand -base64 32)
 compose() { docker compose --env-file .env.example "$@"; }
 cleanup() {
   local status=$?
@@ -77,4 +81,5 @@ compose up -d
 api_url="http://$(compose port api 8080)/api/v1"
 probe ready 200 "$ready"
 [[ $(sql -c 'SELECT id FROM compose_smoke') == 42 ]]
+python3 scripts/test-auth.py "${api_url%/api/v1}" "$APP_ORIGIN"
 printf 'Repeated migration and stack startup succeeded\n'
