@@ -37,12 +37,8 @@ type authResponse struct {
 	cookie      *http.Cookie
 }
 
-func TestAuthenticationPostgreSQL(t *testing.T) {
-	pool, provider := testDatabase(t, 10)
-	if _, err := provider.Up(t.Context()); err != nil {
-		t.Fatal(err)
-	}
-	router, err := app.Router(config.Config{
+func integrationConfig() config.Config {
+	return config.Config{
 		Database: config.Database{CheckTimeout: time.Second},
 		Auth: config.Auth{
 			Secret: []byte("integration-signing-fixture-only"),
@@ -51,11 +47,24 @@ func TestAuthenticationPostgreSQL(t *testing.T) {
 			AccessTTL: 15 * time.Minute, RefreshTTL: 30 * 24 * time.Hour, RequestTimeout: 20 * time.Second,
 			IPLimit: 200, AccountLimit: 20, RateWindow: time.Minute, RateKeys: 100, PasswordWorkers: 4,
 		},
-	}, pool)
+	}
+}
+
+func testAPI(t *testing.T, pool *pgxpool.Pool) authAPI {
+	t.Helper()
+	router, err := app.Router(integrationConfig(), pool)
 	if err != nil {
 		t.Fatal(err)
 	}
-	api := authAPI{router: router}
+	return authAPI{router: router}
+}
+
+func TestAuthenticationPostgreSQL(t *testing.T) {
+	pool, provider := testDatabase(t, 10)
+	if _, err := provider.Up(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	api := testAPI(t, pool)
 
 	t.Run("registration login and profile isolation", func(t *testing.T) {
 		alex := api.register(t, "  ALEX@example.com  ")
