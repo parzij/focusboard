@@ -12,7 +12,7 @@ export default defineConfig({
   webServer: {
     command: "node node_modules/vite/bin/vite.js",
     url: "http://127.0.0.1:5173/api/v1/ready",
-    reuseExistingServer: false,
+    reuseExistingServer: !process.env.CI,
     timeout: 30000,
   },
 });
