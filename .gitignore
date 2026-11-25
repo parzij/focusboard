@@ -1,0 +1,45 @@
+# Environment and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+.aws/
+.netrc
+
+# Dependencies and generated outputs
+node_modules/
+.pnpm-store/
+.vite/
+dist/
+bin/
+backend/api
+backend/cmd/api/api
+*.test
+*.tsbuildinfo
+coverage/
+coverage.out
+playwright-report/
+playwright/.cache/
+playwright/.auth/
+test-results/
+blob-report/
+
+# Editor, OS, and local tooling
+.idea/
+.vscode/
+*.iml
+*.swp
+.DS_Store
+Thumbs.db
+.agents/
+.codex/
+.direnv/
+.envrc
+
+# Temporary files
+*.log
+*.tmp
+tmp/
