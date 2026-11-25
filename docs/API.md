@@ -167,3 +167,9 @@ curl -fsS -G -H "Authorization: Bearer $access" \
   --data-urlencode 'period=weeks' --data-urlencode 'timezone=Europe/Moscow' \
   "$base/statistics"
 ```
+
+### Использование в интерфейсе
+
+Statistics запрашивает выбранный период и IANA timezone браузера (UTC при отсутствии зоны). Days показывает дни Monday–Sunday, Weeks — начала недель в формате DD MMM и диапазон в подсказке. Показатели недели и месяца относятся к текущему календарю независимо от периода. Profile получает активные задачи через GET /tasks и использует PATCH /users/me для имени, PUT /users/me/password для пароля. Неверный текущий пароль возвращает INVALID_CREDENTIALS, сессия сохраняется. Успешный ответ 204 завершает клиентскую сессию. Уже выданные stateless JWT действуют до истечения срока.
+
+GET /tasks возвращает только активные карточки, а Statistics считает дату первого Done каждой задачи. Finish без прежнего Done ничего не добавляет. Повторный Done и удаление не меняют историческое завершение.

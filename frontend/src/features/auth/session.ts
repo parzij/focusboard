@@ -203,6 +203,80 @@ export class SessionController {
       this.channel?.postMessage("signed-out");
     });
 
+  updateName = async (name: string) => {
+    const generation = this.sessionSignal;
+    const user = await this.authorized<User>("/users/me", {
+      method: "PATCH",
+      json: { name },
+    });
+    const key = ["me", user.id];
+    await this.cache.cancelQueries({ queryKey: key });
+    generation.throwIfAborted();
+    if (this.state.status !== "authenticated" || this.state.user.id !== user.id)
+      throw new DOMException("Session changed", "AbortError");
+    this.cache.setQueryData(key, user);
+    this.emit({ status: "authenticated", user });
+  };
+
+  changePassword = (passwords: {
+    currentPassword: string;
+    newPassword: string;
+  }) => {
+    const generation = this.sessionSignal;
+    return this.cookieAction(async () => {
+      generation.throwIfAborted();
+      if (
+        !this.access ||
+        this.state.status !== "authenticated" ||
+        this.externalChange
+      )
+        throw new ApiError(401, "UNAUTHORIZED", "Authentication required.");
+      const userId = this.state.user.id;
+      const send = (token: string) =>
+        request<void>(
+          "/users/me/password",
+          {
+            method: "PUT",
+            json: passwords,
+            signal: generation,
+          },
+          token,
+        );
+      try {
+        await send(this.access);
+      } catch (error) {
+        if (
+          !(error instanceof ApiError) ||
+          error.status !== 401 ||
+          error.code !== "UNAUTHORIZED"
+        )
+          throw error;
+        // Already under the cookie lock. Calling refresh() here would queue behind this action.
+        let renewed: Session;
+        try {
+          renewed = await request<Session>("/auth/refresh", { method: "POST" });
+        } catch (refreshError) {
+          if (expired(refreshError)) {
+            this.invalidate();
+            this.emit({ status: "unauthenticated" });
+          }
+          throw refreshError;
+        }
+        generation.throwIfAborted();
+        this.accept(renewed);
+        generation.throwIfAborted();
+        if (renewed.user.id !== userId || this.externalChange)
+          throw new DOMException("Session changed", "AbortError");
+        await send(renewed.accessToken);
+      }
+      generation.throwIfAborted();
+      this.invalidate();
+      this.emit({ status: "unauthenticated" });
+      this.externalChange = false;
+      this.channel?.postMessage("signed-out");
+    });
+  };
+
   authorized = async <T>(
     path: `/${string}`,
     options: RequestOptions = {},

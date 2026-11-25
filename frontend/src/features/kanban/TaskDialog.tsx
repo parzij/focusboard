@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, X } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
@@ -8,6 +8,7 @@ import { taskStatuses } from "../../entities/task/status";
 import { ApiError } from "../../shared/api/client";
 import { Button, FormError, FormField, Input } from "../../shared/ui/controls";
 
+import { useModal } from "../../shared/ui/useModal";
 import { DateInput } from "../../shared/ui/DateInput";
 import { toDisplayDate, toISODate } from "../../shared/ui/date-value";
 
@@ -48,7 +49,7 @@ export function TaskDialog({
   onUpdate: (id: string, input: TaskInput) => Promise<unknown>;
   onDelete: (id: string) => Promise<unknown>;
 }) {
-  const dialog = useRef<HTMLDialogElement>(null);
+  const dialog = useModal("#task-title");
   const [confirm, setConfirm] = useState<"discard" | "delete" | null>(null);
   const [requestError, setRequestError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -63,26 +64,6 @@ export function TaskDialog({
       },
     });
   const { isDirty } = formState;
-
-  useEffect(() => {
-    const node = dialog.current;
-    const viewport = window.visualViewport;
-    const fitViewport = () => {
-      if (!node || !viewport) return;
-      node.style.setProperty("--task-viewport-height", `${viewport.height}px`);
-      node.style.setProperty("--task-viewport-top", `${viewport.offsetTop}px`);
-    };
-    fitViewport();
-    viewport?.addEventListener("resize", fitViewport);
-    viewport?.addEventListener("scroll", fitViewport);
-    node?.showModal();
-    node?.querySelector<HTMLInputElement>("#task-title")?.focus();
-    return () => {
-      viewport?.removeEventListener("resize", fitViewport);
-      viewport?.removeEventListener("scroll", fitViewport);
-      if (node?.open) node.close();
-    };
-  }, []);
 
   const askClose = () => {
     if (busy) return;

@@ -97,6 +97,42 @@ func TestStatisticsPostgreSQL(t *testing.T) {
 		assertStatistics(t, report(other.User.ID, statistics.Days), 2, 2, 0, 0, 2, 0, 0, 0, 0)
 	})
 
+	t.Run("six active tasks and five first completions", func(t *testing.T) {
+		owner := api.register(t, "stats-six@example.com")
+		request := taskClient(t, api, owner.AccessToken)
+		create := func(status string) taskJSON {
+			return decodeTaskResponse[taskJSON](t, request("POST", "", fmt.Sprintf(`{"title":"Card","status":%q}`, status)), 201)
+		}
+		const first = "2026-11-25T09:00:00Z"
+		now := utc(t, "2026-11-25T12:00:00Z")
+		for range 5 {
+			task := create("done")
+			dateHistory(t, pool, task.ID, first)
+		}
+		pending := create("finish")
+		dateHistory(t, pool, pending.ID, first)
+		check := func(active int, completed int64) {
+			t.Helper()
+			if board := readBoard(t, request("GET", "", "")); len(board) != active {
+				t.Fatalf("active tasks = %d, want %d", len(board), active)
+			}
+			assertStatistics(t, getStatistics(t, pool, owner.User.ID, now, statistics.Days, "UTC"),
+				completed, completed, 0, 0, completed, 0, 0, 0, 0)
+			assertStatistics(t, getStatistics(t, pool, owner.User.ID, now, statistics.Weeks, "UTC"),
+				completed, completed, 0, 0, 0, 0, 0, 0, 0, completed)
+		}
+		check(6, 5)
+		checkAuthResponse(t, request("PATCH", "/"+pending.ID+"/move", `{"status":"done","position":5}`), 200, "")
+		dateHistory(t, pool, pending.ID, first, "2026-11-25T10:00:00Z")
+		check(6, 6)
+		checkAuthResponse(t, request("PATCH", "/"+pending.ID, `{"status":"finish"}`), 200, "")
+		checkAuthResponse(t, request("PATCH", "/"+pending.ID, `{"status":"done"}`), 200, "")
+		dateHistory(t, pool, pending.ID, first, "2026-11-25T10:00:00Z", "2026-11-25T10:30:00Z", "2026-11-25T11:00:00Z")
+		check(6, 6)
+		checkAuthResponse(t, request("DELETE", "/"+pending.ID, ""), 204, "")
+		check(5, 6)
+	})
+
 	t.Run("calendar boundaries and DST", func(t *testing.T) {
 		for i, test := range []struct {
 			name, instant, timezone, monday string

@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryObserver } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Task } from "../../entities/task/task";
 import { commitBoardMove } from "./moveCache";
@@ -121,4 +121,51 @@ describe("move cache transaction", () => {
     );
     expect(send).not.toHaveBeenCalled();
   });
+});
+
+it("keeps the prior report during a confirmed move until the canonical report arrives", async () => {
+  const cache = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  cache.setQueryData(key, [source]);
+  const reportKey = ["statistics", "owner", "days", "UTC"];
+  const otherKey = ["statistics", "other", "days", "UTC"];
+  cache.setQueryData(reportKey, { thisWeek: 5 });
+  cache.setQueryData(otherKey, { thisWeek: 3 });
+  const write = deferred<Task[]>();
+  const report = deferred<{ thisWeek: number }>();
+  const load = vi.fn(() => report.promise);
+  const observer = new QueryObserver(cache, {
+    queryKey: reportKey,
+    queryFn: load,
+    staleTime: Infinity,
+  });
+  const unsubscribe = observer.subscribe(() => {});
+  try {
+    const pending = commitBoardMove(
+      cache,
+      key,
+      new AbortController().signal,
+      move,
+      () => write.promise,
+    );
+    await vi.waitFor(() =>
+      expect(cache.getQueryData(key)).toEqual([optimistic]),
+    );
+    expect(load).not.toHaveBeenCalled();
+    expect(observer.getCurrentResult().data).toEqual({ thisWeek: 5 });
+    write.resolve([canonical]);
+    await pending;
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(observer.getCurrentResult().isFetching).toBe(true);
+    expect(observer.getCurrentResult().data).toEqual({ thisWeek: 5 });
+    report.resolve({ thisWeek: 6 });
+    await vi.waitFor(() =>
+      expect(observer.getCurrentResult().data).toEqual({ thisWeek: 6 }),
+    );
+    expect(cache.getQueryState(otherKey)?.isInvalidated).toBe(false);
+  } finally {
+    unsubscribe();
+    cache.clear();
+  }
 });
