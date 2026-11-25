@@ -1,0 +1,8 @@
+.env
+.env.*
+api
+bin/
+coverage/
+*.key
+*.pem
+*.test

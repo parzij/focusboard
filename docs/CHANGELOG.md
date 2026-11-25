@@ -1,6 +1,12 @@
 # История изменений
 
-## Готовится
+## Этап 1 — База данных и API
+
+- Добавлены валидируемая конфигурация Go, пул pgx, JSON-логи, liveness и внутренний readiness.
+- Добавлены четыре SQL-миграции Goose, OpenAPI и Compose с PostgreSQL, задачей миграций и API.
+- CI проверяет SQL-ограничения и миграции на реальной PostgreSQL, race detector и запуск Compose.
+
+## Этап 0 — Project Bootstrap
 
 - Добавлены инструкция для Codex, дорожная карта и документация архитектуры, PostgreSQL, API и дизайна.
 - Подготовлены минимальные точки входа Go/Chi и React/TypeScript/Vite, шаблон среды и базовый CI с ESLint и Prettier.
