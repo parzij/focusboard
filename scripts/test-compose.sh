@@ -82,4 +82,5 @@ api_url="http://$(compose port api 8080)/api/v1"
 probe ready 200 "$ready"
 [[ $(sql -c 'SELECT id FROM compose_smoke') == 42 ]]
 python3 scripts/test-auth.py "${api_url%/api/v1}" "$APP_ORIGIN"
+python3 scripts/test-tasks.py "${api_url%/api/v1}" "$APP_ORIGIN"
 printf 'Repeated migration and stack startup succeeded\n'

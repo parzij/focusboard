@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: FocusBoard API
-  version: 0.2.0
+  version: 0.3.0
 servers:
   - url: /api/v1
 paths:
@@ -254,6 +254,135 @@ paths:
           $ref: "#/components/responses/RateLimited"
         default:
           $ref: "#/components/responses/ServerError"
+  /tasks:
+    get:
+      operationId: getBoard
+      summary: Read the active board in column and position order
+      security:
+        - bearer: []
+      responses:
+        "200":
+          $ref: "#/components/responses/TaskBoard"
+        "401":
+          $ref: "#/components/responses/InvalidBearer"
+        default:
+          $ref: "#/components/responses/ServerError"
+    post:
+      operationId: createTask
+      summary: Create a task at the end of a column
+      security:
+        - bearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTask"
+      responses:
+        "201":
+          $ref: "#/components/responses/Task"
+        "400":
+          $ref: "#/components/responses/InvalidJSON"
+        "401":
+          $ref: "#/components/responses/InvalidBearer"
+        "409":
+          $ref: "#/components/responses/OrderConflict"
+        "422":
+          $ref: "#/components/responses/InvalidFields"
+        default:
+          $ref: "#/components/responses/ServerError"
+  /tasks/{id}:
+    parameters:
+      - $ref: "#/components/parameters/TaskID"
+    get:
+      operationId: getTask
+      summary: Read an active task owned by the caller
+      security:
+        - bearer: []
+      responses:
+        "200":
+          $ref: "#/components/responses/Task"
+        "401":
+          $ref: "#/components/responses/InvalidBearer"
+        "404":
+          $ref: "#/components/responses/TaskNotFound"
+        "422":
+          $ref: "#/components/responses/InvalidFields"
+        default:
+          $ref: "#/components/responses/ServerError"
+    patch:
+      operationId: updateTask
+      summary: Update task fields and append to the new column on status change
+      security:
+        - bearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTask"
+      responses:
+        "200":
+          $ref: "#/components/responses/Task"
+        "400":
+          $ref: "#/components/responses/InvalidJSON"
+        "401":
+          $ref: "#/components/responses/InvalidBearer"
+        "404":
+          $ref: "#/components/responses/TaskNotFound"
+        "409":
+          $ref: "#/components/responses/OrderConflict"
+        "422":
+          $ref: "#/components/responses/InvalidFields"
+        default:
+          $ref: "#/components/responses/ServerError"
+    delete:
+      operationId: deleteTask
+      summary: Soft delete a task and compact its column
+      security:
+        - bearer: []
+      responses:
+        "204":
+          $ref: "#/components/responses/TaskDeleted"
+        "401":
+          $ref: "#/components/responses/InvalidBearer"
+        "404":
+          $ref: "#/components/responses/TaskNotFound"
+        "409":
+          $ref: "#/components/responses/OrderConflict"
+        "422":
+          $ref: "#/components/responses/InvalidFields"
+        default:
+          $ref: "#/components/responses/ServerError"
+  /tasks/{id}/move:
+    parameters:
+      - $ref: "#/components/parameters/TaskID"
+    patch:
+      operationId: moveTask
+      summary: Move a task and return the committed board
+      security:
+        - bearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoveTask"
+      responses:
+        "200":
+          $ref: "#/components/responses/TaskBoard"
+        "400":
+          $ref: "#/components/responses/InvalidJSON"
+        "401":
+          $ref: "#/components/responses/InvalidBearer"
+        "404":
+          $ref: "#/components/responses/TaskNotFound"
+        "409":
+          $ref: "#/components/responses/OrderConflict"
+        "422":
+          $ref: "#/components/responses/InvalidFields"
+        default:
+          $ref: "#/components/responses/ServerError"
 components:
   headers:
     CacheControl:
@@ -279,6 +408,13 @@ components:
       name: focusboard_refresh
       description: Default cookie name. Deployments can override REFRESH_COOKIE_NAME.
   parameters:
+    TaskID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     Origin:
       name: Origin
       in: header
@@ -358,6 +494,97 @@ components:
           maximum: 900
         user:
           $ref: "#/components/schemas/User"
+    TaskStatus:
+      type: string
+      enum: [not_started, in_progress, finish, done]
+    TaskTitle:
+      type: string
+      description: 1–120 Unicode characters after trimming surrounding whitespace. NUL is rejected.
+    TaskDescription:
+      type: string
+      maxLength: 2000
+      description: NUL is rejected.
+    TaskDate:
+      type: [string, "null"]
+      format: date
+      description: Calendar date in YYYY-MM-DD with year 0001–9999. Past dates are allowed.
+    TaskPosition:
+      type: integer
+      minimum: 0
+      maximum: 2147483647
+    Task:
+      type: object
+      additionalProperties: false
+      required: [id, title, description, status, position, dueDate, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          $ref: "#/components/schemas/TaskTitle"
+        description:
+          $ref: "#/components/schemas/TaskDescription"
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+        position:
+          $ref: "#/components/schemas/TaskPosition"
+        dueDate:
+          $ref: "#/components/schemas/TaskDate"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CreateTask:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          $ref: "#/components/schemas/TaskTitle"
+        description:
+          $ref: "#/components/schemas/TaskDescription"
+          default: ""
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+          default: not_started
+        dueDate:
+          $ref: "#/components/schemas/TaskDate"
+          default: null
+    UpdateTask:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      description: Omitted fields are preserved. An explicit null clears dueDate.
+      properties:
+        title:
+          $ref: "#/components/schemas/TaskTitle"
+        description:
+          $ref: "#/components/schemas/TaskDescription"
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+        dueDate:
+          $ref: "#/components/schemas/TaskDate"
+    MoveTask:
+      type: object
+      additionalProperties: false
+      required: [status, position]
+      properties:
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+        position:
+          $ref: "#/components/schemas/TaskPosition"
+          description: Zero-based insertion index after removing the moving task from its original column. The current destination length is the maximum.
+    TaskBoard:
+      type: object
+      additionalProperties: false
+      required: [tasks]
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
     Error:
       type: object
       required: [error]
@@ -375,6 +602,65 @@ components:
               additionalProperties:
                 type: string
   responses:
+    Task:
+      description: Public task representation.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Task"
+    TaskBoard:
+      description: Active tasks in fixed column order and ascending position. An empty board contains an empty tasks array.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/TaskBoard"
+    TaskDeleted:
+      description: Task soft deleted. The response has no body.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+    TaskNotFound:
+      description: The task is missing, deleted, or owned by another account.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: TASK_NOT_FOUND
+              message: Task not found.
+    OrderConflict:
+      description: The database rejected conflicting positions or the API detected a gap in a checked column. Reload the board before retrying.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: ORDER_CONFLICT
+              message: Task order changed. Reload the board and try again.
     Registered:
       description: Account created and signed in.
       headers:
