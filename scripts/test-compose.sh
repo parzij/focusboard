@@ -14,11 +14,19 @@ export JWT_SECRET
 JWT_SECRET=$(openssl rand -base64 32)
 compose() { docker compose --env-file .env.example "$@"; }
 cleanup() {
-  local status=$?
+  local status=$? container
   if (( status != 0 )); then
     compose ps -a || true
     compose logs --no-color db migrate api || true
   fi
+  for container in "${render_api:-}" "${failed_api:-}"; do
+    if [[ -n $container ]]; then
+      if (( status != 0 )); then
+        docker logs "$container" || true
+      fi
+      docker rm -f "$container" >/dev/null
+    fi
+  done
   compose down
   printf 'Test volume retained for %s\n' "$COMPOSE_PROJECT_NAME"
 }
@@ -85,3 +93,34 @@ python3 scripts/test-auth.py "${api_url%/api/v1}" "$APP_ORIGIN"
 python3 scripts/test-tasks.py "${api_url%/api/v1}" "$APP_ORIGIN"
 python3 scripts/test-statistics.py "${api_url%/api/v1}" "$APP_ORIGIN"
 printf 'Repeated migration and stack startup succeeded\n'
+
+# Render overrides CMD with one executable. Start against a fresh database in
+# this isolated test project to exercise the entrypoint's own migration.
+sql -c 'CREATE DATABASE render_smoke'
+render_db="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@db:5432/render_smoke?sslmode=disable"
+render_api=$(compose run --detach --no-deps --service-ports -e "DATABASE_URL=$render_db" api /usr/local/bin/start-render)
+api_url="http://$(docker port "$render_api" 8080/tcp)/api/v1"
+probe ready 200 "$ready"
+[[ $(docker exec "$render_api" id -u) == 65532 ]]
+[[ $(docker exec "$render_api" readlink /proc/1/exe) == /usr/local/bin/api ]]
+sql -d render_smoke -c 'CREATE TABLE restart_probe (id integer PRIMARY KEY); INSERT INTO restart_probe VALUES (42);'
+docker stop "$render_api"
+[[ $(docker inspect --format '{{.State.ExitCode}}' "$render_api") == 0 ]]
+docker start "$render_api"
+api_url="http://$(docker port "$render_api" 8080/tcp)/api/v1"
+probe ready 200 "$ready"
+[[ $(sql -d render_smoke -c 'SELECT id FROM restart_probe') == 42 ]]
+[[ $(sql -d render_smoke -c 'SELECT count(*) FROM goose_db_version WHERE version_id > 0 AND is_applied') == 4 ]]
+[[ $(docker logs "$render_api" 2>&1) == *'"applied":0'* ]]
+
+# A conflicting table forces a real Goose migration error in a fresh database.
+sql -c 'CREATE DATABASE render_migration_failure'
+sql -d render_migration_failure -c 'CREATE TABLE users (id integer);'
+failed_db="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@db:5432/render_migration_failure?sslmode=disable"
+failed_api=$(compose run --detach --no-deps -e "DATABASE_URL=$failed_db" api /usr/local/bin/start-render)
+[[ $(docker wait "$failed_api") != 0 ]]
+failed_logs=$(docker logs "$failed_api" 2>&1)
+[[ $failed_logs == *'Applying database migrations...'* ]]
+[[ $failed_logs == *'Goose could not apply migrations'* ]]
+[[ $failed_logs != *'Starting FocusBoard API...'* ]]
+printf 'Render startup: initial migrations, restart, PID 1 signal handling, and migration failure verified\n'

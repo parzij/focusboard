@@ -12,6 +12,7 @@ FROM debian:trixie-slim@sha256:8aa5a7bf5a1955bddbe7d74fcdd0b91ab30e74362a8b73af6
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=build /out/api /out/migrate /usr/local/bin/
+COPY --chmod=755 scripts/start-render.sh /usr/local/bin/start-render
 USER 65532:65532
 EXPOSE 8080
 CMD ["/usr/local/bin/api"]

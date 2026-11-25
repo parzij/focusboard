@@ -1,5 +1,15 @@
 # Предварительный план production deployment
 
+## Текущий этап: Netlify, Render и Neon
+
+- **Netlify** обслуживает SPA на `https://focusboard-app.netlify.app`. Клиент использует относительный путь `/api/v1`. При проверке конфигурации Netlify убедиться, что прокси для `/api/v1/*` направляет запросы на HTTPS адрес Render с сохранением префикса и стоит перед SPA fallback. Проверить Origin и Set-Cookie на сквозном запросе. [Netlify rewrites and proxies](https://docs.netlify.com/manage/routing/redirects/rewrites-proxies/)
+- **Render** собирает Dockerfile из контекста `backend/`. В настройках `focusboard-api` указать Docker Command: `/usr/local/bin/start-render`. Вводить только этот путь, без кавычек и операторов shell. Скрипт применяет Goose Up и запускает API через `exec` только при успехе. Локальный CMD и последовательность сервисов Compose остаются прежними. [Docker on Render](https://render.com/docs/docker)
+- **Neon** хранит PostgreSQL. Сохранить настроенный `DATABASE_URL` в окружении Render с параметрами TLS, выданными Neon. Не добавлять URL в Netlify, клиентскую сборку или Git. [Connecting to Neon](https://neon.com/docs/connect/connect-from-any-app)
+
+После пересборки Render проверить в логах успешные миграции и запуск API, затем HTTP 200 от `/api/v1/ready` на Render. Проверить тот же путь через Netlify, а также регистрацию или вход с тестовым аккаунтом. Проверить, что `HTTP_ADDR` слушает на всех интерфейсах контейнера, например `:8080`, если это настроенный порт сервиса. Сохранить production-настройки JWT, `APP_ORIGIN=https://focusboard-app.netlify.app` и `COOKIE_SECURE=true`. Подтверждение запуска на Render остаётся отдельным шагом приёмки.
+
+## Резервный план: OCI
+
 Функциональный MVP принят. Аккаунт OCI, виртуальная машина и домен пока отсутствуют. `focusboard.ru` — предполагаемое имя. План не запускает инфраструктуру и не создаёт релиз.
 
 1. **Хост.** После регистрации проверить домашний регион OCI, доступность Ampere A1 и маркировку Always Free для VM, IP и хранения перед созданием. Выбрать поддерживаемый Ubuntu Server ARM64, обновить ОС, создать непривилегированного оператора и настроить вход по SSH-ключам. Если доступной бесплатной ёмкости нет, отложить запуск и согласовать дальнейшие действия. [Oracle Always Free](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm)
