@@ -1,11 +1,34 @@
 import { useState, type ComponentProps, type ReactNode } from "react";
-import { Check, Eye, EyeOff, LockKeyhole, type LucideIcon } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole, type LucideIcon } from "lucide-react";
 
 export function Logo() {
   return (
     <span className="brand">
       <span className="brand-mark">
-        <Check size={22} aria-hidden="true" />
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <rect
+            x="3.5"
+            y="4"
+            width="17"
+            height="16"
+            rx="3"
+            stroke="currentColor"
+            strokeWidth="1.6"
+          />
+          <path
+            d="M9 4v16M12 12.5l2.2 2.2 3.8-4.2"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </span>
       FocusBoard
     </span>
