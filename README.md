@@ -1,113 +1,118 @@
-# FocusBoard
+<div align="center">
+  <img src="frontend/src/assets/focusboard-logo.svg" width="88" height="88" alt="FocusBoard logo" />
+  <h1>FocusBoard</h1>
+  <p>Organize your tasks. Stay focused. Track your progress.</p>
 
-Персональное приложение для работы с задачами. В MVP входят личная Kanban-доска, сохранение порядка, профиль и статистика по первому закрытию каждой задачи.
+  <a href="https://github.com/parzij/focusboard/actions/workflows/ci.yml"><img src="https://github.com/parzij/focusboard/actions/workflows/ci.yml/badge.svg?branch=master" alt="CI on master" /></a>
+  <img src="https://img.shields.io/badge/React-19-149eca" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-5.9-3178c6" alt="TypeScript 5.9" />
+  <img src="https://img.shields.io/badge/Go-1.27-00add8" alt="Go 1.27" />
+  <img src="https://img.shields.io/badge/PostgreSQL-18-4169e1" alt="PostgreSQL 18" />
+</div>
 
-Backend поддерживает регистрацию, сессии, профиль, API задач с историей статусов и статистику первых закрытий по календарным дням и неделям. React SPA использует реальные API для авторизации, восстановления сессии и управления задачами на четырёхколоночной Kanban-доске. Стадии реализации описаны в [дорожной карте](docs/ROADMAP.md).
+## About
 
-## Запуск Backend и PostgreSQL
+FocusBoard is a personal web app for organizing tasks, managing your workflow, and tracking your productivity. Its minimal, GitHub-inspired dark workspace keeps planning, execution, and progress visible on desktop and mobile.
 
-Понадобится Docker с Compose. Из корня проекта:
+## Features
+
+- Personal Kanban board with **Not started**, **In progress**, **Finish**, and **Done**.
+- Create, edit, and delete tasks with descriptions and optional due dates.
+- Reorder cards by mouse, touch, or keyboard. PostgreSQL persists their order.
+- View daily and weekly charts alongside current week and month completion totals.
+- Register, sign in, edit your profile, change your password, and sign out.
+- Use a responsive workspace with an independently scrollable Kanban board on mobile.
+
+**Active tasks** counts the cards currently on your board. **Statistics** counts each task when it first reaches Done. Finish does not count as a completion. Reopening, closing again, or deleting a previously completed task does not erase or duplicate its first completion.
+
+## Screenshots
+
+![Desktop Kanban board](docs/screenshots/kanban.png)
+
+| Statistics | Profile |
+| --- | --- |
+| ![Daily statistics and completion totals](docs/screenshots/statistics.png) | ![Profile and active task summary](docs/screenshots/profile.png) |
+
+| Authentication | Mobile workspace |
+| --- | --- |
+| ![FocusBoard sign-in screen](docs/screenshots/authentication.png) | <img src="docs/screenshots/mobile.png" width="270" alt="Mobile FocusBoard workspace with Kanban and statistics" /> |
+
+## Technology Stack
+
+| Layer | Tools |
+| --- | --- |
+| Frontend | React, TypeScript, Vite, Tailwind CSS, TanStack Query, React Router, React Hook Form, Zod, dnd-kit, Recharts, Lucide React |
+| Backend | Go, Chi, PostgreSQL, pgx, Goose, JWT, Argon2id |
+| Infrastructure and testing | Docker, Docker Compose, GitHub Actions, OpenAPI, Vitest, Playwright, Go testing |
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Browser --> SPA["React SPA"]
+    SPA --> Handler
+    subgraph API["Go REST API"]
+        Handler --> Service --> Repository
+    end
+    Repository --> PostgreSQL
+```
+
+For local development, Vite serves the SPA and proxies same-origin API requests. Compose starts PostgreSQL, runs Goose migrations, then starts the API.
+
+## Getting Started
+
+You need Git, Docker with Compose v2, Node.js 24 or 26, pnpm 11.6.0, and OpenSSL. Go 1.27 is needed only for running Go checks on the host.
 
 ```sh
+git clone https://github.com/parzij/focusboard.git
+cd focusboard
 cp .env.example .env
 openssl rand -base64 32
-# Paste the generated value into JWT_SECRET in .env.
-docker compose config --quiet
-docker compose up --build -d
-docker compose ps -a
-curl -i http://127.0.0.1:8080/api/v1/health
-curl -i http://127.0.0.1:8080/api/v1/ready
 ```
 
-PostgreSQL доступна контейнерам на `db:5432`. Compose ждёт её healthcheck, запускает Goose и стартует API после успешного завершения миграций. API опубликован только на loopback. `API_PORT` задаёт порт на хосте, `API_CONTAINER_PORT` задаёт порт внутри сети Compose. Состояние БД переживает перезапуск благодаря именованному тому. Значение `JWT_SECRET` хранится в локальном `.env` или хранилище секретов. Для SPA значение `APP_ORIGIN` совпадает с адресом Vite. При изменении порта API также обнови цель Vite proxy.
-
-Пример в `.env.example` предназначен для локальной разработки. При смене пароля обнови `POSTGRES_PASSWORD` и пароль в `DATABASE_URL`. Специальные символы в URL нужно кодировать. В уже инициализированной PostgreSQL смена переменной сама по себе пароль роли не меняет. Для внешней БД используй проверку TLS по требованиям окружения.
-
-Для запуска Go вне Compose задай в окружении `DATABASE_URL` доступной с хоста PostgreSQL, а также `JWT_SECRET`, `JWT_ISSUER`, `JWT_AUDIENCE`, `APP_ORIGIN` и соответствующие настройки cookie. Go читает переменные процесса. `HTTP_ADDR` по умолчанию равен `127.0.0.1:8080`.
+Set `JWT_SECRET` in `.env` to the generated value. Keep the local origin `http://127.0.0.1:5173`, API port `8080`, and `COOKIE_SECURE=false` for local HTTP. If you change `POSTGRES_PASSWORD`, update the password in `DATABASE_URL` to match. Keep `.env` private.
 
 ```sh
-cd backend
-go run ./cmd/migrate up
-go run ./cmd/api
-```
-
-Таймауты HTTP и БД, параметры пула и уровень логов заданы в [шаблоне среды](.env.example). `DB_CHECK_TIMEOUT` должен быть меньше таймаута записи HTTP, а `DB_POOL_MIN_CONNS` не должен превышать `DB_POOL_MAX_CONNS`. При увеличении таймаута graceful shutdown задай больший `API_STOP_GRACE_PERIOD`. Команды проверки миграций и резервного копирования описаны в [документации БД](docs/DATABASE.md).
-
-## Настройка Authentication
-
-| Переменная | Значение |
-| --- | --- |
-| `JWT_SECRET` | Base64 от 32–128 случайных байт. Для локальной разработки сгенерируй через `openssl rand -base64 32` |
-| `JWT_ISSUER`, `JWT_AUDIENCE` | Идентификаторы издателя и аудитории |
-| `ACCESS_TOKEN_TTL`, `REFRESH_TOKEN_TTL` | 15 минут и 30 дней по умолчанию. Допускаются более короткие сроки |
-| `APP_ENV`, `APP_ORIGIN` | В production обязателен точный HTTPS origin. HTTP разрешён в development/test на loopback с явным `COOKIE_SECURE=false` |
-| `REFRESH_COOKIE_NAME`, `COOKIE_SECURE` | Имя по умолчанию `focusboard_refresh`, флаг Secure по умолчанию включён. Path, SameSite и HttpOnly заданы сервером |
-| `AUTH_REQUEST_TIMEOUT` | 8 секунд, включая операции с БД. Меньше `HTTP_WRITE_TIMEOUT` |
-| `AUTH_RATE_WINDOW`, `AUTH_RATE_IP_LIMIT`, `AUTH_RATE_ACCOUNT_LIMIT`, `AUTH_RATE_MAX_KEYS` | 1 минута, 60 запросов на IP, 10 на аккаунт, 8192 ключа |
-| `AUTH_PASSWORD_WORKERS` | 2 одновременные операции Argon2id, допустимо 1–8 |
-
-Примеры запросов есть в [документации API](docs/API.md).
-
-## Запуск Frontend
-
-Понадобятся Node.js 26.13.1 и pnpm 11.6.0. Из корня проекта:
-
-```sh
-# Run from the repository root after configuring .env.
 docker compose config --quiet
 docker compose up --build -d
-curl -fsS http://127.0.0.1:8080/api/v1/ready
+curl -fsS --retry 10 --retry-connrefused --retry-all-errors http://127.0.0.1:8080/api/v1/ready
 
-# Run in a separate terminal.
 cd frontend
-npm install --global pnpm@11.6.0
 pnpm install --frozen-lockfile
 pnpm dev --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-Открой [экран авторизации](http://127.0.0.1:5173/auth). В `.env` нужны `APP_ENV=development`, `APP_ORIGIN=http://127.0.0.1:5173`, `COOKIE_SECURE=false` и `API_PORT=8080`. Если конфигурация уже существует, обнови только эти значения по необходимости. Vite проксирует `/api/v1` на `http://127.0.0.1:8080` вместе с браузерным `Origin`. Используй `127.0.0.1` в обоих адресах.
+Open [http://127.0.0.1:5173/auth](http://127.0.0.1:5173/auth) and create an account. To stop, exit Vite with Ctrl+C and run `docker compose down` from the repository root. The named PostgreSQL volume is retained.
 
-После входа Home показывает задачи из API в фиксированных колонках. `Add task` открывает создание, нажатие карточки — редактирование статуса, текста и дедлайна; удаление требует подтверждения. На телефоне прокручивается ряд колонок, форма открывается в центрированном прокручиваемом диалоге. Для перетаскивания используй Grip справа. На телефоне удерживай Grip, а для обычной прокрутки свайпай вне него. С клавиатуры нажми Space или Enter, выбери колонку и позицию стрелками, подтверди Space или Enter либо отмени Escape.
+## Security
 
-Для остановки нажми Ctrl+C в терминале Vite и из корня выполни `docker compose down`. Том PostgreSQL сохраняется.
+Passwords use Argon2id. The SPA stores the access JWT in memory, and refresh tokens rotate through an HttpOnly cookie. The API derives the account owner from the validated JWT, scopes database access to that owner, uses parameterized SQL, and serializes task changes in transactions. Authentication endpoints use rate limiting.
 
-
-Под доской Statistics показывает первое закрытие задач по дням текущей недели или по восьми календарным неделям. Часовой пояс берётся из браузера, значения — из API. В меню аватара есть Profile и Sign out. Profile показывает текущие активные задачи, позволяет изменить имя и пароль. После смены пароля нужно войти снова.
-
-## Проверки
-
-Из корня проекта. Для локальной сборки Backend используется Go 1.27.4, как в CI.
+## Testing
 
 ```sh
-(cd backend && test -z "$(gofmt -l .)" && go mod verify && go vet ./... && go test -race ./... && go build ./...)
-(cd frontend && pnpm install --frozen-lockfile && pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build)
+(cd backend && go mod verify && go vet ./... && go test -race ./... && go build ./...)
+(cd frontend && pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build)
 bash scripts/test-compose.sh
 ```
 
-Интеграционные тесты Go запускаются при заданном `FOCUSBOARD_TEST_DATABASE_URL` для отдельной базы `focusboard_test`. [GitHub Actions](.github/workflows/ci.yml) поднимает её автоматически. Compose smoke создаёт отдельный тестовый проект, проверяет порядок запуска, потерю и восстановление связи с PostgreSQL и сохранность данных. После прогона тестовые контейнеры останавливаются, тестовый том сохраняется. Compose CI также выполняет полный HTTP-цикл регистрации, входа, обновления сессии и профиля, смены пароля и выхода. Сценарий Tasks проверяет все шесть маршрутов, перестановку и изоляцию. Сценарий Statistics проверяет периоды, часовой пояс, первое Done, soft delete и изоляцию.
+To run the Go PostgreSQL integration suite locally, set `FOCUSBOARD_TEST_DATABASE_URL` to a dedicated test database. The Compose script checks startup, migrations, persistence, and authentication, tasks, and statistics over HTTP.
+
+Stop the local API and Vite first so the isolated Playwright stack can use ports 8080 and 5173.
 
 ```sh
-(cd backend && go test ./internal/platform/password -run '^$' -bench '^BenchmarkHash$' -benchtime=8x -benchmem)
-python3 scripts/test-auth.py http://127.0.0.1:8080 http://127.0.0.1:5173
-python3 scripts/test-tasks.py http://127.0.0.1:8080 http://127.0.0.1:5173
-python3 scripts/test-statistics.py http://127.0.0.1:8080 http://127.0.0.1:5173
-```
-
-Отдельные HTTP smoke-сценарии создают тестовые аккаунты. Запускай их с локальным API и изолированной тестовой БД.
-
-Playwright поднимает отдельный Compose-проект с PostgreSQL и использует свободные порты 8080 и 5173. Перед тестом останови локальный dev stack. Диагностические скриншоты в CI скрывают поля формы и приватные данные.
-
-```sh
-(cd frontend && pnpm install --frozen-lockfile && pnpm exec playwright install chromium)
+(cd frontend && pnpm exec playwright install chromium)
 bash scripts/test-frontend-e2e.sh
 ```
 
-## Документация
+## Documentation
 
-- [Техническое задание](SPECIFICATION.md) и [макеты](docs/mockups/)
-- [Инструкции Codex](AGENTS.md) и [дорожная карта](docs/ROADMAP.md)
-- [Архитектура](docs/ARCHITECTURE.md) и [решения](docs/DECISIONS.md)
-- [База данных](docs/DATABASE.md), [REST API](docs/API.md) и [дизайн-система](docs/DESIGN_SYSTEM.md)
-- [История изменений](docs/CHANGELOG.md)
+- [Specification](SPECIFICATION.md) · [Contributor instructions](AGENTS.md)
+- [Architecture](docs/ARCHITECTURE.md) · [Database](docs/DATABASE.md)
+- [REST API](docs/API.md) · [OpenAPI contract](docs/openapi.yaml)
+- [Design system](docs/DESIGN_SYSTEM.md) · [Technical decisions](docs/DECISIONS.md)
+- [Roadmap](docs/ROADMAP.md) · [Changelog](docs/CHANGELOG.md)
 
-Счётчик active tasks показывает все текущие задачи на доске, а Statistics считает каждую задачу при первом попадании в Done. Поэтому на доске может быть 6 активных задач и только 5 завершений за текущий период.
+## Deployment Status
+
+The functional MVP is complete. Production deployment and release are in preparation. Caddy, public DNS and HTTPS, and the production release workflow are part of the next stage. See the [preliminary deployment plan](docs/DEPLOYMENT_PLAN.md).

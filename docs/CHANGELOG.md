@@ -1,6 +1,8 @@
 # История изменений
 
-## Этап 8. Statistics и Profile
+Функциональные этапы 0–8 завершены и слиты в `master`. Следующий этап — [Production Deployment & Release](DEPLOYMENT_PLAN.md). Версия v1.0.0 ещё не выпущена. PWA запланирован после MVP.
+
+## Этап 8. Statistics и Profile ([PR #9](https://github.com/parzij/focusboard/pull/9))
 
 - Периоды Days и Weeks, исторические завершения из API и календарные итоги недели и месяца.
 - Защищённый Profile, активные счётчики, обновление имени и смена пароля с повторным входом.
