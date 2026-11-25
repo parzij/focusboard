@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: FocusBoard API
-  version: 0.1.0
+  version: 0.2.0
 servers:
   - url: /api/v1
 paths:
@@ -68,6 +68,192 @@ paths:
                       message:
                         type: string
                         examples: ["Service temporarily unavailable."]
+  /auth/register:
+    post:
+      operationId: register
+      summary: Create an account and a refresh session
+      parameters:
+        - $ref: "#/components/parameters/Origin"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Register"
+      responses:
+        "201":
+          $ref: "#/components/responses/Registered"
+        "400":
+          $ref: "#/components/responses/InvalidJSON"
+        "403":
+          $ref: "#/components/responses/ForbiddenOrigin"
+        "409":
+          $ref: "#/components/responses/DuplicateEmail"
+        "422":
+          $ref: "#/components/responses/InvalidFields"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        default:
+          $ref: "#/components/responses/ServerError"
+  /auth/login:
+    post:
+      operationId: login
+      summary: Verify credentials and create a refresh session
+      parameters:
+        - $ref: "#/components/parameters/Origin"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Login"
+      responses:
+        "200":
+          $ref: "#/components/responses/Authenticated"
+        "400":
+          $ref: "#/components/responses/InvalidJSON"
+        "401":
+          $ref: "#/components/responses/InvalidCredentials"
+        "403":
+          $ref: "#/components/responses/ForbiddenOrigin"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        default:
+          $ref: "#/components/responses/ServerError"
+  /auth/refresh:
+    post:
+      operationId: refresh
+      summary: Rotate the refresh cookie and issue an access JWT
+      description: Send an empty body. Rotation preserves the original session expiry.
+      security:
+        - refreshCookie: []
+      parameters:
+        - $ref: "#/components/parameters/Origin"
+      responses:
+        "200":
+          $ref: "#/components/responses/Authenticated"
+        "400":
+          $ref: "#/components/responses/InvalidJSON"
+        "401":
+          $ref: "#/components/responses/InvalidSession"
+        "403":
+          $ref: "#/components/responses/ForbiddenOrigin"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        default:
+          $ref: "#/components/responses/ServerError"
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Revoke the supplied refresh session and clear the cookie
+      description: Send an empty body. Repeating the request is safe.
+      security:
+        - refreshCookie: []
+        - {}
+      parameters:
+        - $ref: "#/components/parameters/Origin"
+      responses:
+        "204":
+          $ref: "#/components/responses/SessionCleared"
+        "400":
+          $ref: "#/components/responses/InvalidJSON"
+        "403":
+          $ref: "#/components/responses/ForbiddenOrigin"
+        default:
+          $ref: "#/components/responses/ServerError"
+  /users/me:
+    get:
+      operationId: getProfile
+      summary: Read the authenticated user's profile
+      security:
+        - bearer: []
+      responses:
+        "200":
+          $ref: "#/components/responses/Profile"
+        "401":
+          $ref: "#/components/responses/InvalidBearer"
+        default:
+          $ref: "#/components/responses/ServerError"
+    patch:
+      operationId: renameProfile
+      summary: Update the authenticated user's name
+      security:
+        - bearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name:
+                  $ref: "#/components/schemas/Name"
+      responses:
+        "200":
+          $ref: "#/components/responses/Profile"
+        "400":
+          $ref: "#/components/responses/InvalidJSON"
+        "401":
+          $ref: "#/components/responses/InvalidBearer"
+        "422":
+          $ref: "#/components/responses/InvalidFields"
+        default:
+          $ref: "#/components/responses/ServerError"
+  /users/me/password:
+    put:
+      operationId: changePassword
+      summary: Change the password and revoke all refresh sessions
+      security:
+        - bearer: []
+      parameters:
+        - $ref: "#/components/parameters/Origin"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword:
+                  $ref: "#/components/schemas/ExistingPassword"
+                newPassword:
+                  $ref: "#/components/schemas/NewPassword"
+      responses:
+        "204":
+          $ref: "#/components/responses/SessionCleared"
+        "400":
+          $ref: "#/components/responses/InvalidJSON"
+        "401":
+          description: Invalid bearer token or current password.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControl"
+            WWW-Authenticate:
+              description: Bearer challenge when authentication is missing or invalid.
+              schema:
+                const: Bearer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                currentPassword:
+                  value:
+                    error:
+                      code: INVALID_CREDENTIALS
+                      message: Invalid current password.
+        "403":
+          $ref: "#/components/responses/ForbiddenOrigin"
+        "422":
+          $ref: "#/components/responses/InvalidFields"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        default:
+          $ref: "#/components/responses/ServerError"
 components:
   headers:
     CacheControl:
@@ -78,3 +264,305 @@ components:
       description: Identifier generated by the HTTP server.
       schema:
         type: string
+    RefreshCookie:
+      description: Host-only HttpOnly cookie with Path=/api/v1/auth, SameSite=Lax and Secure on HTTPS. Max-Age tracks the remaining absolute session lifetime.
+      schema:
+        type: string
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    refreshCookie:
+      type: apiKey
+      in: cookie
+      name: focusboard_refresh
+      description: Default cookie name. Deployments can override REFRESH_COOKIE_NAME.
+  parameters:
+    Origin:
+      name: Origin
+      in: header
+      required: true
+      description: Must exactly match APP_ORIGIN, including for CLI clients.
+      schema:
+        type: string
+        format: uri
+  schemas:
+    User:
+      type: object
+      additionalProperties: false
+      required: [id, name, email, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          $ref: "#/components/schemas/Name"
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        createdAt:
+          type: string
+          format: date-time
+    Name:
+      type: string
+      description: Must contain 1–80 characters after trimming surrounding whitespace.
+    EmailInput:
+      type: string
+      description: ASCII email address up to 254 characters after trimming surrounding whitespace and lowercasing. Use punycode for internationalized domains.
+    ExistingPassword:
+      type: string
+      format: password
+      minLength: 1
+      maxLength: 128
+      description: Limited to 512 UTF-8 bytes and used exactly as submitted.
+    NewPassword:
+      type: string
+      format: password
+      minLength: 12
+      maxLength: 128
+      description: Limited to 512 UTF-8 bytes and used exactly as submitted.
+    Register:
+      type: object
+      additionalProperties: false
+      required: [name, email, password]
+      properties:
+        name:
+          $ref: "#/components/schemas/Name"
+        email:
+          $ref: "#/components/schemas/EmailInput"
+        password:
+          $ref: "#/components/schemas/NewPassword"
+    Login:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          $ref: "#/components/schemas/EmailInput"
+        password:
+          $ref: "#/components/schemas/ExistingPassword"
+    Authenticated:
+      type: object
+      additionalProperties: false
+      required: [accessToken, expiresIn, user]
+      properties:
+        accessToken:
+          type: string
+          description: HS256 access JWT with sub, iss, aud, exp, iat and jti.
+        expiresIn:
+          type: integer
+          description: Access token lifetime in seconds.
+          minimum: 1
+          maximum: 900
+        user:
+          $ref: "#/components/schemas/User"
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            fields:
+              type: object
+              additionalProperties:
+                type: string
+  responses:
+    Registered:
+      description: Account created and signed in.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+        Set-Cookie:
+          $ref: "#/components/headers/RefreshCookie"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Authenticated"
+    Authenticated:
+      description: Authentication succeeded.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+        Set-Cookie:
+          $ref: "#/components/headers/RefreshCookie"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Authenticated"
+    Profile:
+      description: Public profile of the current user.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/User"
+    SessionCleared:
+      description: Operation succeeded and the refresh cookie was cleared.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+        Set-Cookie:
+          description: Expired refresh cookie with matching scope and Max-Age=0.
+          schema:
+            type: string
+    InvalidJSON:
+      description: Malformed or oversized JSON, unknown members, or an unexpected request body.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: Expected a single valid JSON object.
+    InvalidFields:
+      description: Field validation failed.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: Please check the entered data.
+    InvalidCredentials:
+      description: Email and password do not authenticate the user.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: INVALID_CREDENTIALS
+              message: Invalid email or password.
+    InvalidSession:
+      description: Missing, expired, revoked or invalid refresh cookie.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: UNAUTHORIZED
+              message: Authentication required.
+    InvalidBearer:
+      description: Missing or invalid access JWT.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+        WWW-Authenticate:
+          schema:
+            const: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: UNAUTHORIZED
+              message: Authentication required.
+    ForbiddenOrigin:
+      description: Missing or unapproved Origin.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: FORBIDDEN
+              message: Origin is not allowed.
+    DuplicateEmail:
+      description: The normalized email already exists.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: EMAIL_ALREADY_EXISTS
+              message: An account with this email already exists.
+    RateLimited:
+      description: Rate or password worker limit reached.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+        Retry-After:
+          description: Seconds to wait before trying again.
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: RATE_LIMITED
+              message: Too many requests. Try again later.
+    ServerError:
+      description: Internal error (500) or operation deadline (503).
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: INTERNAL_ERROR
+              message: Something went wrong.

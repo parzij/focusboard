@@ -5,8 +5,8 @@
 | Этап | Ветка | Состояние |
 | --- | --- | --- |
 | 0. Project Bootstrap | `chore/project-bootstrap` | Завершён. CI и слияние подтверждены в [PR #1](https://github.com/parzij/focusboard/pull/1) |
-| 1. База данных и API | `feat/database-foundation` | PostgreSQL, Goose, HTTP-пробы и Compose проверены локально. CI и статус слияния — [PR #2](https://github.com/parzij/focusboard/pull/2) |
-| 2. Авторизация и пользователи | `feat/authentication` | Запланирован |
+| 1. База данных и API | `feat/database-foundation` | Завершён. CI и слияние подтверждены в [PR #2](https://github.com/parzij/focusboard/pull/2) |
+| 2. Авторизация и пользователи | `feat/authentication` | Реализованы API, сессии и интеграционные проверки |
 | 3. Задачи и порядок | `feat/task-management` | Запланирован |
 | 4. API статистики | `feat/statistics-api` | Запланирован |
 | 5. Основа SPA и экран авторизации | `feat/frontend-auth` | Запланирован |
