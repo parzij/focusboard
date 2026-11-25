@@ -2,7 +2,7 @@
 
 Персональное приложение для работы с задачами. В MVP входят личная Kanban-доска, сохранение порядка, профиль и статистика по первому закрытию каждой задачи.
 
-Backend поддерживает регистрацию, сессии, профиль, API задач с историей статусов и статистику первых закрытий по календарным дням и неделям. Frontend запускается отдельно и показывает заголовок приложения. Порядок работ описан в [дорожной карте](docs/ROADMAP.md).
+Backend поддерживает регистрацию, сессии, профиль, API задач с историей статусов и статистику первых закрытий по календарным дням и неделям. React SPA использует эти API для регистрации, входа, восстановления сессии и выхода. Защищённая главная страница позволяет проверить сессию. Порядок работ описан в [дорожной карте](docs/ROADMAP.md).
 
 ## Запуск Backend и PostgreSQL
 
@@ -19,7 +19,7 @@ curl -i http://127.0.0.1:8080/api/v1/health
 curl -i http://127.0.0.1:8080/api/v1/ready
 ```
 
-PostgreSQL доступна контейнерам на `db:5432`. Compose ждёт её healthcheck, запускает Goose и стартует API после успешного завершения миграций. API опубликован только на loopback. `API_PORT` задаёт порт на хосте, `API_CONTAINER_PORT` задаёт порт внутри сети Compose. Состояние БД переживает перезапуск благодаря именованному тому. Значение `JWT_SECRET` хранится в локальном `.env` или хранилище секретов. Для смены `API_PORT` согласуй `APP_ORIGIN` с новым адресом приложения.
+PostgreSQL доступна контейнерам на `db:5432`. Compose ждёт её healthcheck, запускает Goose и стартует API после успешного завершения миграций. API опубликован только на loopback. `API_PORT` задаёт порт на хосте, `API_CONTAINER_PORT` задаёт порт внутри сети Compose. Состояние БД переживает перезапуск благодаря именованному тому. Значение `JWT_SECRET` хранится в локальном `.env` или хранилище секретов. Для SPA значение `APP_ORIGIN` совпадает с адресом Vite. При изменении порта API также обнови цель Vite proxy.
 
 Пример в `.env.example` предназначен для локальной разработки. При смене пароля обнови `POSTGRES_PASSWORD` и пароль в `DATABASE_URL`. Специальные символы в URL нужно кодировать. В уже инициализированной PostgreSQL смена переменной сама по себе пароль роли не меняет. Для внешней БД используй проверку TLS по требованиям окружения.
 
@@ -53,13 +53,21 @@ go run ./cmd/api
 Понадобятся Node.js 26.13.1 и pnpm 11.6.0. Из корня проекта:
 
 ```sh
+# Run from the repository root after configuring .env.
+docker compose config --quiet
+docker compose up --build -d
+curl -fsS http://127.0.0.1:8080/api/v1/ready
+
+# Run in a separate terminal.
 cd frontend
 npm install --global pnpm@11.6.0
 pnpm install --frozen-lockfile
-pnpm dev
+pnpm dev --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-Открой адрес из вывода Vite. План подключения SPA к API и запуска для ручной приёмки описан в [этапе 5](docs/ROADMAP.md#5-основа-spa-и-экран-авторизации).
+Открой [экран авторизации](http://127.0.0.1:5173/auth). В `.env` нужны `APP_ENV=development`, `APP_ORIGIN=http://127.0.0.1:5173`, `COOKIE_SECURE=false` и `API_PORT=8080`. Если конфигурация уже существует, обнови только эти значения по необходимости. Vite проксирует `/api/v1` на `http://127.0.0.1:8080` вместе с браузерным `Origin`. Используй `127.0.0.1` в обоих адресах.
+
+Для остановки нажми Ctrl+C в терминале Vite и из корня выполни `docker compose down`. Том PostgreSQL сохраняется.
 
 ## Проверки
 
@@ -75,12 +83,19 @@ bash scripts/test-compose.sh
 
 ```sh
 (cd backend && go test ./internal/platform/password -run '^$' -bench '^BenchmarkHash$' -benchtime=8x -benchmem)
-python3 scripts/test-auth.py http://127.0.0.1:8080 http://127.0.0.1:8080
-python3 scripts/test-tasks.py http://127.0.0.1:8080 http://127.0.0.1:8080
-python3 scripts/test-statistics.py http://127.0.0.1:8080 http://127.0.0.1:8080
+python3 scripts/test-auth.py http://127.0.0.1:8080 http://127.0.0.1:5173
+python3 scripts/test-tasks.py http://127.0.0.1:8080 http://127.0.0.1:5173
+python3 scripts/test-statistics.py http://127.0.0.1:8080 http://127.0.0.1:5173
 ```
 
 Отдельные HTTP smoke-сценарии создают тестовые аккаунты. Запускай их с локальным API и изолированной тестовой БД.
+
+Playwright поднимает отдельный Compose-проект с PostgreSQL и использует свободные порты 8080 и 5173. Перед тестом останови локальный dev stack. Диагностические скриншоты в CI скрывают поля формы и приватные данные.
+
+```sh
+(cd frontend && pnpm install --frozen-lockfile && pnpm exec playwright install chromium)
+bash scripts/test-frontend-e2e.sh
+```
 
 ## Документация
 

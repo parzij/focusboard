@@ -1,0 +1,198 @@
+.auth-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background:
+    radial-gradient(
+      ellipse at 15% 0%,
+      color-mix(in srgb, var(--auth-violet) 22%, transparent),
+      transparent 52%
+    ),
+    radial-gradient(
+      ellipse at 92% 100%,
+      color-mix(in srgb, var(--auth-blue) 18%, transparent),
+      transparent 48%
+    ),
+    var(--bg);
+}
+
+.auth-layout {
+  isolation: isolate;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 960px);
+  min-height: 560px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-auth);
+  background: var(--surface);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 35%);
+}
+
+.auth-form {
+  grid-row: 1;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: 32px clamp(24px, 4.1vw, 56px);
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    transform var(--duration-auth) var(--ease-auth),
+    opacity 250ms ease;
+}
+.auth-form--login {
+  grid-column: 1;
+}
+.auth-form--register {
+  grid-column: 2;
+}
+.auth-form[inert] {
+  opacity: 0;
+  pointer-events: none;
+}
+.auth-form--login[inert] {
+  transform: translateX(12%);
+}
+.auth-form--register[inert] {
+  transform: translateX(-12%);
+}
+.auth-form-content {
+  width: min(100%, 344px);
+}
+.auth-form h1 {
+  margin: 24px 0 20px;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+  outline: none;
+}
+.auth-form form,
+.auth-fields {
+  display: grid;
+  gap: 16px;
+}
+.auth-form form {
+  gap: 20px;
+}
+.auth-submit {
+  width: 100%;
+}
+
+.auth-invitation {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 50%;
+  padding: 24px;
+  color: var(--auth-panel-text);
+  background:
+    radial-gradient(
+      ellipse at 90% 5%,
+      color-mix(in srgb, var(--chart-bar) 29%, transparent),
+      transparent 63%
+    ),
+    linear-gradient(142deg, var(--auth-blue), var(--auth-violet) 76%);
+  border-inline: 1px solid color-mix(in srgb, var(--focus) 30%, transparent);
+  transform: translateX(100%);
+  transition: transform var(--duration-auth) var(--ease-auth);
+}
+.auth-layout[data-mode="register"] .auth-invitation {
+  transform: translateX(0);
+}
+.invitation-copy {
+  grid-area: 1 / 1;
+  text-align: center;
+  width: min(100%, 340px);
+  opacity: 1;
+  transition: opacity 150ms ease 105ms;
+}
+.invitation-copy[inert] {
+  opacity: 0;
+  transition: opacity 90ms ease;
+  pointer-events: none;
+}
+.invitation-copy h2 {
+  font-size: 30px;
+  line-height: 1.16;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.invitation-copy p {
+  margin-top: 12px;
+}
+.invitation-copy .button {
+  margin-top: 24px;
+  min-width: 156px;
+}
+
+@media (max-width: 767px) {
+  .auth-screen {
+    padding: 20px 16px;
+  }
+  .auth-layout {
+    grid-template-columns: minmax(0, 1fr);
+    width: min(100%, 480px);
+    min-height: 0;
+  }
+  .auth-form {
+    grid-area: 1 / 1;
+    padding: 28px 24px 24px;
+  }
+  .auth-form-content > .brand {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 18px;
+  }
+  .auth-form h1 {
+    margin-top: 20px;
+    font-size: 28px;
+    text-align: center;
+  }
+  .auth-form--login[inert] {
+    transform: translateX(100%);
+  }
+  .auth-form--register[inert] {
+    transform: translateX(-100%);
+  }
+  .auth-invitation,
+  .auth-layout[data-mode="register"] .auth-invitation {
+    position: relative;
+    grid-row: 2;
+    width: 100%;
+    padding: 16px 20px;
+    transform: none;
+    background: color-mix(in srgb, var(--auth-violet) 17%, var(--surface));
+    border: 0;
+    border-top: 1px solid var(--border);
+  }
+  .invitation-copy h2 {
+    font-size: 16px;
+    letter-spacing: -0.015em;
+  }
+  .invitation-copy p {
+    font-size: 14px;
+    margin-top: 4px;
+    color: var(--text-muted);
+  }
+  .invitation-copy .button {
+    margin-top: 12px;
+    min-height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-form,
+  .auth-invitation,
+  .invitation-copy,
+  .invitation-copy[inert] {
+    transition: none;
+  }
+}
