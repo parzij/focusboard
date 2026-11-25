@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, Plus, RefreshCw, UserRound } from "lucide-react";
 import { useSession } from "../../features/auth/context";
@@ -14,7 +14,14 @@ import "./home.css";
 function TaskCard({ task, onOpen }: { task: Task; onOpen: () => void }) {
   return (
     <button
-      className={`task-card task-card--${task.status}`}
+      className="task-card"
+      style={
+        {
+          "--task-accent": taskStatuses.find(
+            ({ value }) => value === task.status,
+          )?.accent,
+        } as CSSProperties
+      }
       onClick={onOpen}
       type="button"
       aria-label={`Edit task: ${task.title}`}
@@ -191,14 +198,6 @@ export function HomePage({ user }: { user: User }) {
                         </div>
                       )}
                   </div>
-                  {status.value === "not_started" && (
-                    <button
-                      className="column-add"
-                      onClick={() => setSelected(null)}
-                    >
-                      <Plus size={16} /> Add task
-                    </button>
-                  )}
                 </section>
               );
             })}

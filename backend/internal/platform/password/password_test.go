@@ -57,7 +57,7 @@ func TestPasswordLengths(t *testing.T) {
 		value             string
 		newOK, existingOK bool
 	}{
-		{"", false, false}, {strings.Repeat("x", 11), false, true}, {strings.Repeat("x", 12), true, true},
+		{"", false, false}, {strings.Repeat("x", 7), false, true}, {strings.Repeat("x", 8), true, true},
 		{strings.Repeat("🔑", 128), true, true}, {strings.Repeat("🔑", 129), false, false},
 		{strings.Repeat("x", 129), false, false}, {"\xffnot valid UTF-8", false, false},
 	} {

@@ -22,12 +22,38 @@ export function useTaskMutations(userId: string) {
   const { controller } = useSession();
   const cache = useQueryClient();
   const key = taskBoardKey(userId);
-  const refreshBoard = () => cache.invalidateQueries({ queryKey: key });
+  const boardQuery = () => cache.getQueryCache().find({ queryKey: key });
+  const syncBoard = async (id: string, task?: Task) => {
+    const query = boardQuery();
+    if (!query) return;
+    await cache.cancelQueries({ queryKey: key });
+    if (boardQuery() !== query) return;
+
+    cache.setQueryData<Task[]>(key, (current) => {
+      if (!current) return current;
+      const previous = current.find((item) => item.id === id);
+      const remaining = current
+        .filter((item) => item.id !== id)
+        .map((item) => {
+          if (
+            previous &&
+            previous.status !== task?.status &&
+            item.status === previous.status &&
+            item.position > previous.position
+          ) {
+            return { ...item, position: item.position - 1 };
+          }
+          return item;
+        });
+      return task ? [...remaining, task] : remaining;
+    });
+    void cache.invalidateQueries({ queryKey: key });
+  };
 
   const create = useMutation({
     mutationFn: (input: TaskInput) =>
       controller.authorized<Task>("/tasks", { method: "POST", json: input }),
-    onSuccess: refreshBoard,
+    onSuccess: (task) => syncBoard(task.id, task),
   });
   const update = useMutation({
     mutationFn: ({ id, input }: { id: string; input: TaskInput }) =>
@@ -35,12 +61,12 @@ export function useTaskMutations(userId: string) {
         method: "PATCH",
         json: input,
       }),
-    onSuccess: refreshBoard,
+    onSuccess: (task) => syncBoard(task.id, task),
   });
   const remove = useMutation({
     mutationFn: (id: string) =>
       controller.authorized<void>(`/tasks/${id}`, { method: "DELETE" }),
-    onSuccess: refreshBoard,
+    onSuccess: (_, id) => syncBoard(id),
   });
   return { create, update, remove };
 }
