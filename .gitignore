@@ -24,8 +24,8 @@ backend/cmd/api/api
 coverage/
 coverage.out
 playwright-report/
-playwright/.cache/
-playwright/.auth/
+**/playwright/.cache/
+**/playwright/.auth/
 test-results/
 blob-report/
 
