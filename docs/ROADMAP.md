@@ -8,7 +8,7 @@
 | 1. База данных и API | `feat/database-foundation` | Завершён. CI и слияние подтверждены в [PR #2](https://github.com/parzij/focusboard/pull/2) |
 | 2. Авторизация и пользователи | `feat/authentication` | Завершён. CI и слияние подтверждены в [PR #3](https://github.com/parzij/focusboard/pull/3) |
 | 3. Задачи и порядок | `feat/task-management` | Завершён. CI и слияние подтверждены в [PR #4](https://github.com/parzij/focusboard/pull/4) |
-| 4. API статистики | `feat/statistics-api` | Реализован. Проверки и статус слияния фиксируются в PR этапа |
+| 4. API статистики | `feat/statistics-api` | Реализован. CI и статус слияния — [PR #5](https://github.com/parzij/focusboard/pull/5) |
 | 5. Основа SPA и экран авторизации | `feat/frontend-auth` | Запланирован |
 | 6. Доска и формы задач | `feat/kanban-board` | Запланирован |
 | 7. Перетаскивание | `feat/drag-and-drop` | Запланирован |
