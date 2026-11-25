@@ -50,8 +50,8 @@ export const registerSchema = signInSchema.extend({
   password: z
     .string()
     .refine(
-      (value) => validPassword(value, 12),
-      "Password must contain 12–128 characters and at most 512 bytes.",
+      (value) => validPassword(value, 8),
+      "Password must contain 8–128 characters and at most 512 bytes.",
     ),
 });
 

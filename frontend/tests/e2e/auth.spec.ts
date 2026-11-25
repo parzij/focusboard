@@ -8,15 +8,40 @@ const form = (page: Page, name: string) =>
   page.getByRole("form", { name, exact: true });
 const invite = (page: Page, name: string) =>
   page.locator(".auth-invitation").getByRole("button", { name, exact: true });
+async function signOut(page: Page, name: string) {
+  await page.getByRole("button", { name: `Account menu for ${name}` }).click();
+  await page.getByRole("button", { name: "Sign out" }).click();
+}
 
-async function create(page: Page, email: string, name = "Taylor Morgan") {
+async function create(
+  page: Page,
+  email: string,
+  name = "Taylor Morgan",
+  password = fixturePassword,
+  checkMinimum = false,
+) {
   await page.goto("/auth?mode=register");
   const target = form(page, "Create account");
   await target.getByLabel("Full name").fill(name);
   await target.getByLabel("Email").fill(email);
-  await target.getByLabel("Password", { exact: true }).fill(fixturePassword);
+  const passwordField = target.getByLabel("Password", { exact: true });
+  if (checkMinimum) {
+    await expect(target.getByText("At least 8 characters.")).toBeVisible();
+    await page.screenshot({
+      path: "test-results/stage6-create-account.png",
+      mask: [target.getByLabel("Email")],
+      maskColor: "#21262d",
+    });
+    await passwordField.fill(password.slice(0, 7));
+    await target.getByRole("button", { name: "Create account" }).click();
+    await expect(target.getByText(/Password must contain 8/)).toBeVisible();
+  }
+  await passwordField.fill(password);
   await target.getByRole("button", { name: "Create account" }).click();
-  await expect(heading(page, `Welcome, ${name}`)).toBeVisible();
+  await expect(heading(page, "My Productivity")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: `Account menu for ${name}` }),
+  ).toBeVisible();
 }
 
 test.afterEach(async ({ page }, info) => {
@@ -50,9 +75,12 @@ test("auth lifecycle against PostgreSQL", async ({ page, context }) => {
   await expect(heading(page, "Create account")).toBeVisible();
 
   const email = account();
-  await create(page, email);
+  const minimumPassword = "board UI";
+  await create(page, email, "Taylor Morgan", minimumPassword, true);
   await page.reload();
-  await expect(heading(page, "Welcome, Taylor Morgan")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Account menu for Taylor Morgan" }),
+  ).toBeVisible();
   const cookies = await context.cookies();
   const refresh = cookies.find(
     (cookie) => cookie.name === "focusboard_refresh",
@@ -63,7 +91,7 @@ test("auth lifecycle against PostgreSQL", async ({ page, context }) => {
   expect(
     await page.evaluate(() => localStorage.length + sessionStorage.length),
   ).toBe(0);
-  await page.getByRole("button", { name: "Logout" }).click();
+  await signOut(page, "Taylor Morgan");
   await expect(heading(page, "Sign in")).toBeVisible();
 
   const login = form(page, "Sign in");
@@ -73,10 +101,12 @@ test("auth lifecycle against PostgreSQL", async ({ page, context }) => {
   await expect(page.getByRole("alert")).toHaveText(
     "Invalid email or password.",
   );
-  await login.getByLabel("Password", { exact: true }).fill(fixturePassword);
+  await login.getByLabel("Password", { exact: true }).fill(minimumPassword);
   await login.getByRole("button", { name: "Sign in" }).click();
-  await expect(heading(page, "Welcome, Taylor Morgan")).toBeVisible();
-  await page.getByRole("button", { name: "Logout" }).click();
+  await expect(
+    page.getByRole("button", { name: "Account menu for Taylor Morgan" }),
+  ).toBeVisible();
+  await signOut(page, "Taylor Morgan");
 
   await invite(page, "Create account").click();
   const register = form(page, "Create account");
@@ -93,7 +123,9 @@ test("auth lifecycle against PostgreSQL", async ({ page, context }) => {
     (await login.getByLabel("Password", { exact: true }).inputValue()).length,
   ).toBe(0);
   await create(page, account(), "New Account");
-  await expect(heading(page, "Welcome, Taylor Morgan")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Account menu for Taylor Morgan" }),
+  ).toHaveCount(0);
 });
 
 test("two tabs coordinate refresh and logout", async ({ page, context }) => {
@@ -101,8 +133,10 @@ test("two tabs coordinate refresh and logout", async ({ page, context }) => {
   const second = await context.newPage();
   await Promise.all([page.reload(), second.goto("/")]);
   for (const tab of [page, second])
-    await expect(heading(tab, "Welcome, Taylor Morgan")).toBeVisible();
-  await second.getByRole("button", { name: "Logout" }).click();
+    await expect(
+      tab.getByRole("button", { name: "Account menu for Taylor Morgan" }),
+    ).toBeVisible();
+  await signOut(second, "Taylor Morgan");
   for (const tab of [page, second]) await expect(tab).toHaveURL(/\/auth$/);
 });
 
@@ -122,7 +156,9 @@ test("strict mode checks once and guards private content while waiting", async (
   await page.goto("/");
   await expect(page.getByRole("status")).toHaveText("Checking your session…");
   await expect(heading(page, "Sign in")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Logout" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Account menu/ })).toHaveCount(
+    0,
+  );
   resume();
   await expect(page).toHaveURL(/\/auth$/);
   expect(requests).toBe(1);
@@ -183,4 +219,184 @@ test("keyboard, reduced motion, rapid switches and narrow screens", async ({
   await expect(
     form(page, "Create account").getByLabel("Password", { exact: true }),
   ).toBeInViewport();
+});
+
+test("task board CRUD against the real Tasks API", async ({ page }) => {
+  const email = account();
+  await create(page, email, "Board Owner");
+  await expect(
+    page.getByRole("heading", { name: "My Productivity" }),
+  ).toBeVisible();
+  for (const status of ["Not started", "In progress", "Finish", "Done"])
+    await expect(page.getByRole("heading", { name: status })).toBeVisible();
+  await expect(page.getByText("No tasks yet.")).toBeVisible();
+  await page.screenshot({
+    path: "test-results/stage6-board-empty-desktop.png",
+    fullPage: true,
+  });
+
+  await page.getByRole("button", { name: "Add task" }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Add task" });
+  await page.screenshot({
+    path: "test-results/stage6-task-dialog-desktop.png",
+    fullPage: true,
+  });
+  await dialog.getByLabel("Task title").fill("Review the first milestone");
+  await dialog.getByLabel("Short note").fill("A private note");
+  await dialog.getByLabel("Due date").fill("2026-11-30");
+  await dialog.getByRole("button", { name: "Create task" }).click();
+  const card = page.getByRole("button", {
+    name: "Edit task: Review the first milestone",
+  });
+  await expect(card).toBeVisible();
+  await page.screenshot({
+    path: "test-results/stage6-board-desktop.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: "test-results/stage6-board-task-mobile.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(
+    page.locator(".board-column--not_started .board-column__count"),
+  ).toBeVisible();
+  await expect(
+    page.locator(".board-column--not_started .board-column__count"),
+  ).toHaveText("1");
+
+  await card.click();
+  const edit = page.getByRole("dialog", { name: "Edit task" });
+  await expect(edit.getByLabel("Task title")).toHaveValue(
+    "Review the first milestone",
+  );
+  let releaseRefresh!: () => void;
+  const refreshGate = new Promise<void>((resolve) => {
+    releaseRefresh = resolve;
+  });
+  await page.route("**/api/v1/tasks", async (route) => {
+    if (route.request().method() === "GET") await refreshGate;
+    await route.continue();
+  });
+  await edit.getByLabel("Task title").fill("Finish the first milestone");
+  await edit.getByLabel("Status").selectOption("finish");
+  await edit.getByRole("button", { name: "Save" }).click();
+  await expect(
+    page.getByRole("button", { name: "Edit task: Finish the first milestone" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Edit task: Review the first milestone" }),
+  ).toHaveCount(0);
+
+  await expect(
+    page.locator(".board-column--not_started .board-column__count"),
+  ).toHaveText("0");
+  await expect(
+    page.locator(".board-column--finish .board-column__count"),
+  ).toHaveText("1");
+  await expect(page.locator(".board-columns")).toHaveAttribute(
+    "aria-busy",
+    "false",
+  );
+  const refreshed = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/v1/tasks") &&
+      response.request().method() === "GET",
+  );
+  releaseRefresh();
+  await refreshed;
+  await page.unroute("**/api/v1/tasks");
+
+  await page
+    .getByRole("button", { name: "Edit task: Finish the first milestone" })
+    .click();
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  const confirmation = page
+    .getByRole("dialog")
+    .getByRole("heading", { name: "Delete task?" });
+  await expect(confirmation).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Edit task: Finish the first milestone" }),
+  ).toHaveCount(0);
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "My Productivity" }),
+  ).toBeVisible();
+  await expect(page.getByText("No tasks yet.")).toBeVisible();
+
+  await expect(
+    page.getByRole("button", { name: "Add task", exact: true }),
+  ).toHaveCount(1);
+  for (const [status, title, color] of [
+    ["not_started", "Plan the next milestone", "rgb(139, 148, 158)"],
+    ["in_progress", "Draft the project outline", "rgb(88, 166, 255)"],
+    ["finish", "Review the final draft", "rgb(63, 185, 80)"],
+    ["done", "Submit the first milestone", "rgb(188, 140, 255)"],
+  ]) {
+    await page.getByRole("button", { name: "Add task" }).click();
+    await dialog.getByLabel("Task title").fill(title);
+    await dialog.getByLabel("Status").selectOption(status);
+    await dialog.getByRole("button", { name: "Create task" }).click();
+    const column = page.locator(`.board-column--${status}`);
+    const saved = column.getByRole("button", { name: `Edit task: ${title}` });
+    await expect(column.locator(".board-column__count")).toHaveText("1");
+    for (const side of ["top", "right", "bottom", "left"]) {
+      await expect(saved).toHaveCSS(`border-${side}-color`, color);
+      await expect(saved).toHaveCSS(`border-${side}-width`, "1px");
+    }
+  }
+  await page.screenshot({
+    path: "test-results/stage6-board-desktop.png",
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Edit task: Plan the next milestone" })
+    .click();
+  await page.screenshot({
+    path: "test-results/stage6-edit-desktop.png",
+    fullPage: true,
+  });
+  await page.keyboard.press("Escape");
+
+  for (const width of [320, 375, 390, 430, 768, 1024, 1280, 1440, 1920]) {
+    await page.setViewportSize({ width, height: width < 768 ? 700 : 900 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBe(width);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page
+      .locator(".board-scroll")
+      .evaluate((node) => node.scrollWidth > node.clientWidth),
+  ).toBe(true);
+  await page.screenshot({
+    path: "test-results/stage6-board-mobile.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Add task" }).first().click();
+  const mobileDialog = page.getByRole("dialog", { name: "Add task" });
+  await expect(mobileDialog).toBeVisible();
+  const submit = mobileDialog.getByRole("button", { name: "Create task" });
+  await submit.scrollIntoViewIfNeeded();
+  await expect(submit).toBeInViewport();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
+    390,
+  );
+  await page.screenshot({
+    path: "test-results/stage6-task-dialog-mobile.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 320, height: 380 });
+  await submit.click();
+  await expect(mobileDialog.getByText("Add a task title.")).toBeVisible();
+  await submit.scrollIntoViewIfNeeded();
+  await expect(submit).toBeInViewport();
+  await page.keyboard.press("Escape");
+  await expect(mobileDialog).toBeHidden();
 });

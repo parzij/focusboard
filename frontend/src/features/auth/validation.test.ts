@@ -38,8 +38,11 @@ describe("auth validation", () => {
         .success,
     ).toBe(false);
     expect(
-      registerSchema.safeParse({ ...valid, password: "🙂".repeat(11) }).success,
+      registerSchema.safeParse({ ...valid, password: "🙂".repeat(7) }).success,
     ).toBe(false);
+    expect(
+      registerSchema.safeParse({ ...valid, password: "🙂".repeat(8) }).success,
+    ).toBe(true);
     expect(new TextEncoder().encode("🙂".repeat(128)).length).toBe(512);
     expect(
       registerSchema.safeParse({ ...valid, name: "界".repeat(80) }).success,

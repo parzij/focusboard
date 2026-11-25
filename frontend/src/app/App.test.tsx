@@ -70,7 +70,10 @@ describe("routing and forms", () => {
     );
     expect(location.pathname).toBe("/");
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
-    await screen.findByRole("heading", { name: "Welcome, Example Person" });
+    await screen.findByRole("heading", { name: "My Productivity" });
+    expect(
+      screen.getByRole("button", { name: "Account menu for Example Person" }),
+    ).toBeTruthy();
     expect(localStorage.length + sessionStorage.length).toBe(0);
   });
 

@@ -41,7 +41,7 @@ func NewService(repo *Repository, passwords *password.Hasher, access *token.Acce
 	return &Service{repo: repo, passwords: passwords, access: access, refreshTTL: refreshTTL}
 }
 
-const passwordError = "Password must contain 12–128 characters and at most 512 bytes."
+const passwordError = "Password must contain 8–128 characters and at most 512 bytes."
 
 func (s *Service) Register(ctx context.Context, name, email, secret string) (Result, error) {
 	email = normalizeEmail(email)

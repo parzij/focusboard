@@ -40,7 +40,9 @@ Backend состоит из модулей auth, users, tasks и statistics. Mid
 
 ## Frontend и сессия
 
-`app` собирает Router, QueryClient и SessionProvider. Guard дожидается bootstrap refresh и затем открывает `/auth` или защищённый Home. `pages/auth` содержит общий layout и синхронизирует режим с query URL. `features/auth` отвечает за формы и сессию. `pages/home` читает `/users/me` через TanStack Query с ключом, включающим UUID пользователя. `entities/task` содержит конфигурацию статусов. `shared` предоставляет Fetch wrapper, токены и примитивы UI.
+`app` собирает Router, QueryClient и SessionProvider. Guard дожидается bootstrap refresh и затем открывает `/auth` или защищённый Home. `pages/auth` содержит общий layout и синхронизирует режим с query URL. `features/auth` отвечает за формы и сессию. `pages/home` собирает шапку, доску, колонки и модальное CRUD-представление. `features/kanban` содержит TanStack Query hooks с ключами, включающими UUID пользователя, и CRUD-форму. `entities/task` содержит типы и единую конфигурацию статусов. `shared` предоставляет Fetch wrapper, токены и примитивы UI.
+
+Home получает канонический список через `GET /tasks`; все списки колонок производятся из него по фиксированному конфигу статусов и серверной позиции. Create, Update и soft Delete вызывают существующие endpoints, после успеха инвалидируют query доски и загружают серверное состояние. Перетаскивание и оптимистическая перестановка относятся к следующему этапу. Модалка использует нативный `<dialog>` для модального фокуса, Escape и inert-фона, а React Hook Form/Zod — для валидации.
 
 Fetch использует относительные адреса, передаёт cookie через same-origin и добавляет Bearer только в защищённые запросы. Контроллер держит access JWT в памяти и делит один refresh promise между запросами и повторным эффектом StrictMode. После явного 401 защищённый запрос повторяется один раз. Сетевая ошибка bootstrap показывает Retry. При ошибке logout интерфейс предлагает повторить выход.
 

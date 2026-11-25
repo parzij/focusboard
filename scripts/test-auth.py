@@ -11,8 +11,8 @@ def run(target, origin):
     cookies = http.cookiejar.CookieJar()
     client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookies))
     email = f"smoke-{uuid.uuid4().hex}@example.com"
-    password = f"smoke-password-{uuid.uuid4().hex}"
-    new_password = f"updated-password-{uuid.uuid4().hex}"
+    password = uuid.uuid4().hex[:8]
+    new_password = uuid.uuid4().hex[:8]
 
     def request(label, method, path, expected, body=None, access=None, replay=None):
         headers = {"Origin": origin}
@@ -45,6 +45,8 @@ def run(target, origin):
             raise RuntimeError("Unexpected refresh cookie scope")
         return f"{cookie.name}={cookie.value}"
 
+    request("Seven-character password rejected", "POST", "/auth/register", 422,
+            {"name": "Smoke Example", "email": email, "password": password[:7]})
     registration = request("Registration", "POST", "/auth/register", 201,
                            {"name": "Smoke Example", "email": email, "password": password})
     assert registration["user"]["email"] == email

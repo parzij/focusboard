@@ -51,7 +51,7 @@ export function Button({
   disabled,
   ...props
 }: ComponentProps<"button"> & {
-  variant?: "primary" | "secondary" | "outline";
+  variant?: "primary" | "secondary" | "outline" | "danger";
   loading?: string;
 }) {
   return (

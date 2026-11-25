@@ -22,7 +22,7 @@ import (
 const (
 	origin          = "https://focusboard.example.com"
 	initialPassword = "  original passphrase  "
-	updatedPassword = "updated passphrase"
+	updatedPassword = "updated!"
 	cookieName      = "focusboard_refresh"
 )
 
@@ -175,6 +175,17 @@ func TestAuthenticationPostgreSQL(t *testing.T) {
 		execSQL(t, pool, "UPDATE refresh_tokens SET expires_at = now() - interval '1 second' WHERE token_hash = $1", expiredHash)
 		checkAuthResponse(t, api.call(t, "POST", "/auth/refresh", "", origin, "", expired.cookie), 401, "UNAUTHORIZED")
 	})
+	t.Run("registration password length boundary", func(t *testing.T) {
+		const email = "boundary@example.com"
+		register := func(secret string) *httptest.ResponseRecorder {
+			body := encodeBody(map[string]string{"name": "Example Owner", "email": email, "password": secret})
+			return api.call(t, "POST", "/auth/register", body, origin, "", nil)
+		}
+		checkAuthResponse(t, register("1234567"), 422, "VALIDATION_ERROR")
+		readAuth(t, register("12345678"), 201)
+		readAuth(t, api.call(t, "POST", "/auth/login", loginBody(email, "12345678"), origin, "", nil), 200)
+	})
+
 	t.Run("password change revokes sessions and serializes concurrent writers", func(t *testing.T) {
 		session := api.register(t, "password@example.com")
 		secondSession := readAuth(t, api.call(t, "POST", "/auth/login", loginBody(session.User.Email, initialPassword), origin, "", nil), 200)
@@ -187,7 +198,7 @@ func TestAuthenticationPostgreSQL(t *testing.T) {
 		change := passwordBody(initialPassword, updatedPassword)
 		checkAuthResponse(t, api.call(t, "PUT", "/users/me/password", change, "", session.AccessToken, nil), 403, "FORBIDDEN")
 		checkAuthResponse(t, api.call(t, "PUT", "/users/me/password", passwordBody("wrong", updatedPassword), origin, session.AccessToken, nil), 401, "INVALID_CREDENTIALS")
-		checkAuthResponse(t, api.call(t, "PUT", "/users/me/password", passwordBody(initialPassword, "short"), origin, session.AccessToken, nil), 422, "VALIDATION_ERROR")
+		checkAuthResponse(t, api.call(t, "PUT", "/users/me/password", passwordBody(initialPassword, "1234567"), origin, session.AccessToken, nil), 422, "VALIDATION_ERROR")
 		results := concurrentRequests(t,
 			func() *httptest.ResponseRecorder {
 				return api.call(t, "PUT", "/users/me/password", change, origin, session.AccessToken, nil)

@@ -38,7 +38,7 @@ func New(workers int) (*Hasher, error) {
 }
 
 func ValidNew(value string) bool {
-	return ValidExisting(value) && utf8.RuneCountInString(value) >= 12
+	return ValidExisting(value) && utf8.RuneCountInString(value) >= 8
 }
 
 func ValidExisting(value string) bool {

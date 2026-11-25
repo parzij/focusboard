@@ -158,7 +158,7 @@ export function AuthForm({
               id={`${mode}-password`}
               label="Password"
               error={errors.password?.message}
-              hint={creating ? "At least 12 characters." : undefined}
+              hint={creating ? "At least 8 characters." : undefined}
             >
               <PasswordInput
                 key={String(active)}

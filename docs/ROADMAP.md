@@ -9,8 +9,8 @@
 | 2. Авторизация и пользователи | `feat/authentication` | Завершён. CI и слияние подтверждены в [PR #3](https://github.com/parzij/focusboard/pull/3) |
 | 3. Задачи и порядок | `feat/task-management` | Завершён. CI и слияние подтверждены в [PR #4](https://github.com/parzij/focusboard/pull/4) |
 | 4. API статистики | `feat/statistics-api` | Завершён. CI и слияние подтверждены в [PR #5](https://github.com/parzij/focusboard/pull/5) |
-| 5. Основа SPA и экран авторизации | `feat/frontend-auth` | Реализован. Ожидает ручной визуальной приёмки в [PR #6](https://github.com/parzij/focusboard/pull/6) |
-| 6. Доска и формы задач | `feat/kanban-board` | Запланирован |
+| 5. Основа SPA и экран авторизации | `feat/frontend-auth` | Завершён после согласованной правки логотипа; PR #6 слит в `master` (`43c68e6`) |
+| 6. Доска и формы задач | `feat/kanban-board` | [PR #7](https://github.com/parzij/focusboard/pull/7) открыт. По итогам первой приёмки внесены правки, требуется повторная ручная проверка |
 | 7. Перетаскивание | `feat/drag-and-drop` | Запланирован |
 | 8. Статистика, профиль и адаптивность | `feat/statistics-profile` | Запланирован |
 | 9. Подготовка MVP v1.0.0 | `chore/release-v1.0.0` | Запланирован |
