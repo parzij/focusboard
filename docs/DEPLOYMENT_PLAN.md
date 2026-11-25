@@ -2,11 +2,15 @@
 
 ## Текущий этап: Netlify, Render и Neon
 
-- **Netlify** обслуживает SPA на `https://focusboard-app.netlify.app`. Клиент использует относительный путь `/api/v1`. При проверке конфигурации Netlify убедиться, что прокси для `/api/v1/*` направляет запросы на HTTPS адрес Render с сохранением префикса и стоит перед SPA fallback. Проверить Origin и Set-Cookie на сквозном запросе. [Netlify rewrites and proxies](https://docs.netlify.com/manage/routing/redirects/rewrites-proxies/)
+- **Netlify** обслуживает SPA на `https://focusboard-app.netlify.app`. Клиент использует относительный путь `/api/v1`. Netlify публикует Vite `dist`. Vite переносит `frontend/public/_redirects` в корень сборки. Правило `/api/v1/*` проксирует запросы на `https://focusboard-api-l3rn.onrender.com/api/v1/:splat` до SPA fallback. Проверить Origin и Set-Cookie на сквозном запросе. [Netlify rewrites and proxies](https://docs.netlify.com/manage/routing/redirects/rewrites-proxies/)
 - **Render** собирает Dockerfile из контекста `backend/`. В настройках `focusboard-api` указать Docker Command: `/usr/local/bin/start-render`. Вводить только этот путь, без кавычек и операторов shell. Скрипт применяет Goose Up и запускает API через `exec` только при успехе. Локальный CMD и последовательность сервисов Compose остаются прежними. [Docker on Render](https://render.com/docs/docker)
-- **Neon** хранит PostgreSQL. Сохранить настроенный `DATABASE_URL` в окружении Render с параметрами TLS, выданными Neon. Не добавлять URL в Netlify, клиентскую сборку или Git. [Connecting to Neon](https://neon.com/docs/connect/connect-from-any-app)
+- **Neon** хранит PostgreSQL во Frankfurt. Сохранить настроенный `DATABASE_URL` в окружении Render с параметрами TLS, выданными Neon. Не добавлять URL в Netlify, клиентскую сборку или Git. [Connecting to Neon](https://neon.com/docs/connect/connect-from-any-app)
 
-После пересборки Render проверить в логах успешные миграции и запуск API, затем HTTP 200 от `/api/v1/ready` на Render. Проверить тот же путь через Netlify, а также регистрацию или вход с тестовым аккаунтом. Проверить, что `HTTP_ADDR` слушает на всех интерфейсах контейнера, например `:8080`, если это настроенный порт сервиса. Сохранить production-настройки JWT, `APP_ORIGIN=https://focusboard-app.netlify.app` и `COOKIE_SECURE=true`. Подтверждение запуска на Render остаётся отдельным шагом приёмки.
+После пересборки Render проверить в логах успешные миграции и запуск API, затем HTTP 200 от `/api/v1/ready` на Render. Проверить тот же путь через Netlify, а также регистрацию или вход с тестовым аккаунтом. Проверить, что `HTTP_ADDR` слушает на всех интерфейсах контейнера, например `:8080`, если это настроенный порт сервиса. Сохранить production-настройки JWT, `APP_ORIGIN=https://focusboard-app.netlify.app` и `COOKIE_SECURE=true`. Render запустился на `d807b3d`. Интеграция с Netlify проходит отдельную проверку перед ручной приёмкой.
+
+### Холодный старт
+
+После простоя возможна задержка пробуждения Render и Neon. Netlify ограничивает ожидание ответа proxy rewrite 26 секундами. Если первый запрос не проходит, дождаться готовности backend и использовать Retry для чтения или восстановления сессии. После таймаута мутации сначала проверить фактическое состояние и только затем повторять её вручную при необходимости. Клиент не запускает фоновые keep-alive запросы. [Ограничения proxy rewrites](https://docs.netlify.com/manage/routing/redirects/rewrites-proxies/#limitations)
 
 ## Резервный план: OCI
 

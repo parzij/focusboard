@@ -13,7 +13,7 @@
 | 6. Доска и формы задач | `feat/kanban-board` | Завершён. Владелец подтвердил приёмку, [PR #7](https://github.com/parzij/focusboard/pull/7) слит в `master` (`a2f8d9e`), [CI](https://github.com/parzij/focusboard/actions/runs/45630310918) прошёл |
 | 7. Перетаскивание | `feat/drag-and-drop` | Завершён после повторной ручной приёмки. [PR #8](https://github.com/parzij/focusboard/pull/8) слит в `master` (`0ca2481`), [CI](https://github.com/parzij/focusboard/actions/runs/45637357220) прошёл |
 | 8. Статистика, профиль и адаптивность | `feat/statistics-profile` | Завершён после приёмки владельцем. [PR #9](https://github.com/parzij/focusboard/pull/9) слит в `master` (`dce9557`), [CI](https://github.com/parzij/focusboard/actions/runs/45651812446) прошёл |
-| 9. Production Deployment & Release | `chore/release-v1.0.0` | Следующий этап. [План развёртывания](DEPLOYMENT_PLAN.md) |
+| 9. Production Deployment & Release | `chore/release-v1.0.0` | В работе. Frontend опубликован на Netlify, backend Render запущен с PostgreSQL Neon. Проверяется сквозная интеграция. [План развёртывания](DEPLOYMENT_PLAN.md) |
 | 10. PWA | Ветка отдельной согласованной задачи | После принятия MVP |
 
 ## 0. Project Bootstrap
@@ -99,9 +99,9 @@ URL ручной проверки — `http://127.0.0.1:5173/auth`. Для ос�
 
 ## 9. Production Deployment & Release
 
-Собрать production images и Caddy с SPA fallback и API proxy, проверить запрет доступа к внутренним путям и настройки безопасности. Провести полный архитектурный, функциональный, визуальный и security аудит, прогнать CI, Compose/Caddy и Playwright, проверить backup/restore PostgreSQL. Завершить CI/CD после согласования среды, описать запуск и deployment, подготовить Release Notes.
+Проверить связку Netlify SPA и API proxy, Render Docker и Neon PostgreSQL. Проверить запрет доступа к внутренним путям и настройки безопасности. Caddy остаётся резервным self-hosted вариантом. Провести полный архитектурный, функциональный, визуальный и security аудит, прогнать CI, Compose/Caddy и Playwright, проверить backup/restore PostgreSQL. Завершить CI/CD после согласования среды, описать запуск и deployment, подготовить Release Notes.
 
-Приёмка включает все [критерии ТЗ](../SPECIFICATION.md#20-критерии-приёмки), проверенный запуск через Compose/Caddy и стабильный тег `v1.0.0`. Адрес, домен и credentials берутся из выбранного владельцем окружения.
+Приёмка включает все [критерии ТЗ](../SPECIFICATION.md#20-критерии-приёмки), проверенный запуск Netlify + Render + Neon, регрессию локального Compose и тег `v1.0.0`. Адрес, домен и credentials берутся из выбранного владельцем окружения.
 
 ## 10. PWA
 
