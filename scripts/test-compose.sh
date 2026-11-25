@@ -101,6 +101,8 @@ render_db="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@db:5432/render_smoke?ssl
 render_api=$(compose run --detach --no-deps --service-ports -e "DATABASE_URL=$render_db" api /usr/local/bin/start-render)
 api_url="http://$(docker port "$render_api" 8080/tcp)/api/v1"
 probe ready 200 "$ready"
+render_logs=$(docker logs "$render_api" 2>&1)
+[[ $render_logs == *'Applying database migrations...'*'"applied":4'*'Starting FocusBoard API...'* ]]
 [[ $(docker exec "$render_api" id -u) == 65532 ]]
 [[ $(docker exec "$render_api" readlink /proc/1/exe) == /usr/local/bin/api ]]
 sql -d render_smoke -c 'CREATE TABLE restart_probe (id integer PRIMARY KEY); INSERT INTO restart_probe VALUES (42);'
@@ -118,7 +120,9 @@ sql -c 'CREATE DATABASE render_migration_failure'
 sql -d render_migration_failure -c 'CREATE TABLE users (id integer);'
 failed_db="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@db:5432/render_migration_failure?sslmode=disable"
 failed_api=$(compose run --detach --no-deps -e "DATABASE_URL=$failed_db" api /usr/local/bin/start-render)
-[[ $(docker wait "$failed_api") != 0 ]]
+# Bound the wait so a regression that starts the server fails promptly.
+failed_status=$(timeout 20s docker wait "$failed_api")
+[[ $failed_status != 0 ]]
 failed_logs=$(docker logs "$failed_api" 2>&1)
 [[ $failed_logs == *'Applying database migrations...'* ]]
 [[ $failed_logs == *'Goose could not apply migrations'* ]]
