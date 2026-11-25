@@ -8,7 +8,7 @@
 - `internal/platform/postgres` настраивает один pgxpool на процесс. Проверка `Ping` получает контекст запроса и ограничена `DB_CHECK_TIMEOUT`. При недоступности БД HTTP-сервер остаётся живым, readiness восстанавливается с подключением пула. При SIGINT или SIGTERM сервер завершает активные запросы в пределах таймаута и закрывает пул.
 - `internal/httpx` преобразует результат проверки в HTTP-ответ. Бизнес-модули используют Handler → Service → Repository. Пробы проверяют инфраструктуру напрямую через переданную функцию.
 - `backend/cmd/migrate` запускает Goose со встроенными SQL-файлами. Compose дожидается healthcheck PostgreSQL и успешного выхода контейнера миграций перед запуском API.
-- React/Vite в `frontend` запускается отдельно.
+- В development Vite обслуживает SPA на 127.0.0.1:5173 и проксирует `/api/v1` на API.
 
 ## Authentication и Users
 
@@ -37,3 +37,11 @@ Caddy отдаёт статику Vite с SPA fallback и сохраняет п�
 Backend состоит из модулей auth, users, tasks и statistics. Middleware устанавливает проверенный user ID, Handler обрабатывает HTTP, Service реализует правила и транзакции, Repository выполняет параметризованный SQL. Statistics читает историю задач. Конструкторы принимают явные зависимости.
 
 На фронтенде `pages` собирает экраны из `features` и `entities`; `shared` содержит общие UI-компоненты, стили и API client. TanStack Query управляет серверными данными. Access token живёт в памяти, восстановление сессии проходит через refresh cookie.
+
+## Frontend и сессия
+
+`app` собирает Router, QueryClient и SessionProvider. Guard дожидается bootstrap refresh и затем открывает `/auth` или защищённый Home. `pages/auth` содержит общий layout и синхронизирует режим с query URL. `features/auth` отвечает за формы и сессию. `pages/home` читает `/users/me` через TanStack Query с ключом, включающим UUID пользователя. `entities/task` содержит конфигурацию статусов. `shared` предоставляет Fetch wrapper, токены и примитивы UI.
+
+Fetch использует относительные адреса, передаёт cookie через same-origin и добавляет Bearer только в защищённые запросы. Контроллер держит access JWT в памяти и делит один refresh promise между запросами и повторным эффектом StrictMode. После явного 401 защищённый запрос повторяется один раз. Сетевая ошибка bootstrap показывает Retry. При ошибке logout интерфейс предлагает повторить выход.
+
+Login, register, refresh и logout упорядочены внутри вкладки и используют общий Web Lock в поддерживающих браузерах. BroadcastChannel передаёт сигнал о смене сессии без токенов, соседние вкладки сбрасывают кеш и заново проверяют cookie. Смена сессии отменяет приватные запросы и очищает QueryClient. Запоздалый ответ проверяет сигнал поколения сессии перед использованием.
