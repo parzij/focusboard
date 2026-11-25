@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: FocusBoard API
-  version: 0.3.0
+  version: 0.4.0
 servers:
   - url: /api/v1
 paths:
@@ -383,6 +383,61 @@ paths:
           $ref: "#/components/responses/InvalidFields"
         default:
           $ref: "#/components/responses/ServerError"
+  /statistics:
+    get:
+      operationId: getStatistics
+      summary: Count tasks by their first historical Done
+      description: >
+        Computes the first Done across the caller's entire task history, including
+        soft-deleted and reopened tasks. All counts use one database snapshot
+        and exclude events after the calculation time.
+      security:
+        - bearer: []
+      parameters:
+        - name: period
+          in: query
+          description: >
+            Days contains the 7 days of the current Monday–Sunday week.
+            Weeks contains the current Monday-based week and the 7 previous weeks.
+            Omit to use days. Empty or repeated parameters are rejected.
+          schema:
+            type: string
+            enum: [days, weeks]
+            default: days
+        - name: timezone
+          in: query
+          description: >
+            IANA timezone name, such as Europe/Moscow or Asia/Kolkata.
+            Omit to use UTC. Empty values, repeated parameters, filesystem paths,
+            and system-local aliases are rejected. Only these two query parameters are supported.
+          schema:
+            type: string
+            default: UTC
+          example: Europe/Moscow
+      responses:
+        "200":
+          $ref: "#/components/responses/Statistics"
+        "401":
+          $ref: "#/components/responses/InvalidBearer"
+        "422":
+          $ref: "#/components/responses/InvalidFields"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        "503":
+          description: The statistics request exceeded its deadline.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControl"
+            X-Request-ID:
+              $ref: "#/components/headers/RequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error:
+                  code: SERVICE_UNAVAILABLE
+                  message: Service temporarily unavailable.
 components:
   headers:
     CacheControl:
@@ -585,6 +640,59 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Task"
+    StatisticsBucket:
+      type: object
+      additionalProperties: false
+      required: [startDate, count]
+      properties:
+        startDate:
+          type: string
+          format: date
+          description: Local calendar date, or the local Monday for a weekly bucket.
+        count:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Number of tasks whose first Done occurred in this bucket.
+    StatisticsResponse:
+      type: object
+      additionalProperties: false
+      required: [period, timezone, buckets, thisWeek, thisMonth]
+      properties:
+        period:
+          type: string
+          enum: [days, weeks]
+        timezone:
+          type: string
+          description: IANA timezone used for the report.
+        buckets:
+          type: array
+          description: Chronologically sorted buckets, including zero counts.
+          items:
+            $ref: "#/components/schemas/StatisticsBucket"
+        thisWeek:
+          type: integer
+          format: int64
+          minimum: 0
+          description: First closures in the current local Monday-based week.
+        thisMonth:
+          type: integer
+          format: int64
+          minimum: 0
+          description: First closures in the current local calendar month.
+      oneOf:
+        - properties:
+            period:
+              const: days
+            buckets:
+              minItems: 7
+              maxItems: 7
+        - properties:
+            period:
+              const: weeks
+            buckets:
+              minItems: 8
+              maxItems: 8
     Error:
       type: object
       required: [error]
@@ -602,6 +710,47 @@ components:
               additionalProperties:
                 type: string
   responses:
+    Statistics:
+      description: Historical first closures and local calendar totals for the authenticated user.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControl"
+        X-Request-ID:
+          $ref: "#/components/headers/RequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/StatisticsResponse"
+          examples:
+            days:
+              value:
+                period: days
+                timezone: Europe/Moscow
+                buckets:
+                  - {startDate: "2026-11-23", count: 1}
+                  - {startDate: "2026-11-24", count: 2}
+                  - {startDate: "2026-11-25", count: 0}
+                  - {startDate: "2026-11-26", count: 0}
+                  - {startDate: "2026-11-27", count: 0}
+                  - {startDate: "2026-11-28", count: 0}
+                  - {startDate: "2026-11-29", count: 0}
+                thisWeek: 3
+                thisMonth: 12
+            weeks:
+              value:
+                period: weeks
+                timezone: Europe/Moscow
+                buckets:
+                  - {startDate: "2026-10-05", count: 1}
+                  - {startDate: "2026-10-12", count: 0}
+                  - {startDate: "2026-10-19", count: 1}
+                  - {startDate: "2026-10-26", count: 0}
+                  - {startDate: "2026-11-02", count: 5}
+                  - {startDate: "2026-11-09", count: 4}
+                  - {startDate: "2026-11-16", count: 0}
+                  - {startDate: "2026-11-23", count: 3}
+                thisWeek: 3
+                thisMonth: 12
     Task:
       description: Public task representation.
       headers:
