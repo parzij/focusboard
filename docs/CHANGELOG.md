@@ -1,5 +1,11 @@
 # История изменений
 
+## Этап 2 — Authentication & Users
+
+- Добавлены регистрация, вход, refresh, выход, чтение и изменение профиля, смена пароля.
+- JWT, Argon2id, Origin, refresh cookie, rate limiting и транзакционный отзыв сессий покрыты тестами.
+- OpenAPI описывает новые операции. CI запускает интеграционные тесты PostgreSQL и полный HTTP smoke в Compose.
+
 ## Этап 1 — База данных и API
 
 - Добавлены валидируемая конфигурация Go, пул pgx, JSON-логи, liveness и внутренний readiness.

@@ -24,7 +24,7 @@ import (
 )
 
 func TestPostgreSQLFoundation(t *testing.T) {
-	pool, provider := testDatabase(t)
+	pool, provider := testDatabase(t, 1)
 	ctx := t.Context()
 	t.Run("migrate up down and up again", func(t *testing.T) {
 		results, err := provider.Up(ctx)
@@ -169,14 +169,14 @@ func TestPostgreSQLFoundation(t *testing.T) {
 	})
 }
 
-func testDatabase(t *testing.T) (*pgxpool.Pool, *goose.Provider) {
+func testDatabase(t *testing.T, maxConnections int32) (*pgxpool.Pool, *goose.Provider) {
 	t.Helper()
 	dsn := os.Getenv("FOCUSBOARD_TEST_DATABASE_URL")
 	if dsn == "" {
 		t.Skip("set FOCUSBOARD_TEST_DATABASE_URL to run against a dedicated PostgreSQL test database")
 	}
 	settings := config.Database{
-		URL: dsn, ConnectTimeout: 3 * time.Second, MaxConns: 1,
+		URL: dsn, ConnectTimeout: 3 * time.Second, MaxConns: maxConnections,
 		MaxConnIdle: time.Minute, MaxConnAge: time.Hour,
 	}
 	cfg, err := postgres.PoolConfig(settings)

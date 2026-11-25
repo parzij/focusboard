@@ -8,13 +8,16 @@ import (
 )
 
 func TestLoad(t *testing.T) {
-	env := map[string]string{
+	env := authEnvironment()
+	for key, value := range map[string]string{
 		"DATABASE_URL":      "postgres://example@localhost/example",
 		"HTTP_ADDR":         "[::1]:9090",
 		"LOG_LEVEL":         "warn",
 		"DB_POOL_MAX_CONNS": "8",
 		"DB_POOL_MIN_CONNS": "2",
 		"DB_CHECK_TIMEOUT":  "350ms",
+	} {
+		env[key] = value
 	}
 	got, err := load(func(key string) string { return env[key] })
 	if err != nil {
@@ -47,7 +50,8 @@ func TestLoadRejectsInvalidSettings(t *testing.T) {
 		{"DB_POOL_MIN_CONNS", "-1"},
 	} {
 		t.Run(test.key+"/"+test.value, func(t *testing.T) {
-			env := map[string]string{"DATABASE_URL": "postgres://example@localhost/example"}
+			env := authEnvironment()
+			env["DATABASE_URL"] = "postgres://example@localhost/example"
 			env[test.key] = test.value
 			_, err := load(func(key string) string { return env[key] })
 			if err == nil || !strings.Contains(err.Error(), test.key) || strings.Contains(err.Error(), sensitive) {
