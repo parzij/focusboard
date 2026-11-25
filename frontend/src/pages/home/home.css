@@ -207,25 +207,96 @@
 }
 .task-card {
   display: grid;
-  justify-items: start;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: center;
   min-height: 68px;
-  width: 100%;
-  padding: 13px 14px;
-  text-align: left;
+  min-width: 0;
   color: var(--text);
   background: color-mix(in srgb, var(--task-accent) 5%, var(--surface-raised));
   border: 1px solid var(--task-accent);
   border-radius: 12px;
-  cursor: pointer;
   transition:
-    transform 180ms ease,
     background 180ms ease,
+    opacity 180ms ease,
     border-color 180ms ease;
 }
 .task-card:hover {
-  transform: translateY(-1px);
   background: color-mix(in srgb, var(--task-accent) 9%, var(--surface-raised));
+}
+.task-card__content {
+  display: grid;
+  justify-items: start;
+  align-content: center;
+  align-self: stretch;
+  gap: 8px;
+  padding: 10px 0 10px 14px;
+  text-align: left;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.task-card__handle {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  touch-action: none;
+  cursor: grab;
+}
+.task-card__handle:hover {
+  color: var(--text);
+}
+.task-card__handle[aria-disabled="true"] {
+  cursor: default;
+}
+[data-dragging] .task-card__handle {
+  cursor: grabbing;
+}
+.task-card[data-drag-source] {
+  opacity: 0.35;
+  border-style: dashed;
+}
+.task-card--overlay {
+  box-shadow: 0 8px 20px rgb(0 0 0 / 38%);
+  cursor: grabbing;
+}
+.task-card--overlay > svg {
+  justify-self: center;
+}
+.board-scroll[data-dragging] {
+  scroll-snap-type: none;
+}
+.board-column {
+  transition: border-color 180ms ease;
+}
+.board-column[data-drop-target] {
+  border-color: var(--column-accent);
+}
+.task-slot {
+  position: relative;
+  transition: padding-top 180ms ease;
+}
+.task-slot[data-insert-before] {
+  padding-top: 40px;
+}
+.task-slot[data-insert-before]::before,
+.task-insertion {
+  height: 30px;
+  border: 1px dashed var(--column-accent);
+  border-radius: 10px;
+  background: var(--column-background);
+}
+.task-slot[data-insert-before]::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .board-column,
+  .task-slot {
+    transition: none;
+  }
 }
 .task-card__title {
   font-size: 14px;

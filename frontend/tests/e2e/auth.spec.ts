@@ -346,8 +346,14 @@ test("task board CRUD against the real Tasks API", async ({ page }) => {
     const saved = column.getByRole("button", { name: `Edit task: ${title}` });
     await expect(column.locator(".board-column__count")).toHaveText("1");
     for (const side of ["top", "right", "bottom", "left"]) {
-      await expect(saved).toHaveCSS(`border-${side}-color`, color);
-      await expect(saved).toHaveCSS(`border-${side}-width`, "1px");
+      await expect(saved.locator("..")).toHaveCSS(
+        `border-${side}-color`,
+        color,
+      );
+      await expect(saved.locator("..")).toHaveCSS(
+        `border-${side}-width`,
+        "1px",
+      );
     }
   }
   await page.screenshot({
