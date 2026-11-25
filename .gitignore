@@ -12,6 +12,7 @@
 
 # Dependencies and generated outputs
 node_modules/
+__pycache__/
 .pnpm-store/
 .vite/
 dist/

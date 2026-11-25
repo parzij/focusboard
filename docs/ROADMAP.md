@@ -7,8 +7,8 @@
 | 0. Project Bootstrap | `chore/project-bootstrap` | Завершён. CI и слияние подтверждены в [PR #1](https://github.com/parzij/focusboard/pull/1) |
 | 1. База данных и API | `feat/database-foundation` | Завершён. CI и слияние подтверждены в [PR #2](https://github.com/parzij/focusboard/pull/2) |
 | 2. Авторизация и пользователи | `feat/authentication` | Завершён. CI и слияние подтверждены в [PR #3](https://github.com/parzij/focusboard/pull/3) |
-| 3. Задачи и порядок | `feat/task-management` | Реализовано. CI и статус слияния — [PR #4](https://github.com/parzij/focusboard/pull/4) |
-| 4. API статистики | `feat/statistics-api` | Запланирован |
+| 3. Задачи и порядок | `feat/task-management` | Завершён. CI и слияние подтверждены в [PR #4](https://github.com/parzij/focusboard/pull/4) |
+| 4. API статистики | `feat/statistics-api` | Реализован. CI и статус слияния — [PR #5](https://github.com/parzij/focusboard/pull/5) |
 | 5. Основа SPA и экран авторизации | `feat/frontend-auth` | Запланирован |
 | 6. Доска и формы задач | `feat/kanban-board` | Запланирован |
 | 7. Перетаскивание | `feat/drag-and-drop` | Запланирован |
@@ -51,6 +51,32 @@
 Подключить Tailwind, Inter, Lucide, Router, TanStack Query, React Hook Form и Zod. Заложить общие токены, API client, guard и bootstrap refresh, согласование конкурентных refresh, очистку кеша сессии. Собрать единый `/auth` с двумя панелями на desktop и одной видимой формой на mobile.
 
 Приёмка включает реальные login/register и refresh после reload, отсутствие flash приватного экрана, Back/Forward при синхронизации URL, keyboard focus, reduced motion и доступность формы при клавиатуре. Добавить Playwright smoke в CI вместе с первым сквозным сценарием.
+
+### План локальной интеграции
+
+1. Подключить React Router, Tailwind, Inter, Lucide, TanStack Query, React Hook Form и Zod. Подготовить токены, общий API client и страницы с guard. Согласовать переходы и responsive-поведение с макетами авторизации.
+2. Хранить access JWT в памяти. При загрузке выполнить refresh до показа приватного экрана, согласовать параллельные refresh, очистить состояние и приватные запросы при выходе или смене аккаунта. Обработать ошибки полей, 401 и 429.
+3. Настроить Vite на `127.0.0.1:5173` со строгим портом и проксировать `/api/v1` на `http://127.0.0.1:8080`. Сохранять префикс, браузерный `Origin` и `Set-Cookie`. Браузер обращается по относительным URL к Vite, поэтому запросы и cookies остаются на одном origin. Широкий CORS не нужен.
+4. Для Compose задать в локальном `.env` значения `APP_ENV=development`, `APP_ORIGIN=http://127.0.0.1:5173`, `API_PORT=8080`, `COOKIE_SECURE=false` и сгенерированный `JWT_SECRET`. Refresh cookie сохраняет HttpOnly, SameSite=Lax и путь `/api/v1/auth`. В среде HTTPS используется Secure. В браузере, настройке Origin и прокси использовать `127.0.0.1` последовательно.
+
+Команды запуска после настройки прокси на этапе 5.
+
+```sh
+# From the repository root. Configure .env as described above.
+docker compose config --quiet
+docker compose up --build -d
+curl -fsS http://127.0.0.1:8080/api/v1/ready
+
+# In the frontend directory.
+pnpm install --frozen-lockfile
+pnpm dev --host 127.0.0.1 --port 5173 --strictPort
+```
+
+URL ручной проверки — `http://127.0.0.1:5173/auth`. Для остановки заверши Vite через Ctrl+C и из корня репозитория выполни `docker compose down`. Команда сохраняет том PostgreSQL.
+
+### Ручная визуальная приёмка
+
+С этапа 5 каждый этап, затрагивающий UI, проходит локальный запуск, реальные сценарии в браузере и проверку desktop и mobile. Приложи скриншоты, точный loopback URL и команды запуска. Открой PR после автоматизированных проверок и дождись зелёного CI. Остановись перед merge до явной ручной визуальной приёмки владельца. Согласованные исправления вносятся в той же ветке, затем повторяются тесты и CI актуального HEAD. Merge выполняется после подтверждения владельца. Перенос некритичных улучшений и изменения утверждённого дизайна согласуются с владельцем.
 
 ## 6. Доска и формы задач
 
