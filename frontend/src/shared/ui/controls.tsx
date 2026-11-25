@@ -79,7 +79,10 @@ export function Input({
   );
 }
 
-export function PasswordInput(props: ComponentProps<"input">) {
+export function PasswordInput({
+  toggleLabel = "password",
+  ...props
+}: ComponentProps<"input"> & { toggleLabel?: string }) {
   const [visible, setVisible] = useState(false);
   const Icon = visible ? EyeOff : Eye;
   return (
@@ -94,7 +97,7 @@ export function PasswordInput(props: ComponentProps<"input">) {
         className="password-toggle"
         disabled={props.disabled}
         onClick={() => setVisible(!visible)}
-        aria-label={visible ? "Hide password" : "Show password"}
+        aria-label={`${visible ? "Hide" : "Show"} ${toggleLabel}`}
       >
         <Icon size={19} aria-hidden="true" />
       </button>

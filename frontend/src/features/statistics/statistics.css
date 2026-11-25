@@ -1,0 +1,125 @@
+.statistics-panel {
+  margin: 24px 0 0;
+  padding: clamp(12px, 2.5vw, 24px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  min-width: 0;
+}
+.statistics-header,
+.statistics-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.statistics-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 650;
+}
+.statistics-header p,
+.statistics-data,
+.statistics-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.statistics-period {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.statistics-period button {
+  min-height: 36px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.statistics-period button[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--surface-raised);
+}
+.statistics-layout {
+  display: grid;
+  grid-template-columns: minmax(140px, 190px) minmax(0, 1fr);
+  gap: 16px;
+}
+.statistics-totals {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.statistics-totals > div {
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-raised);
+}
+.statistics-totals dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.statistics-totals dd {
+  font-size: 22px;
+  font-weight: 680;
+}
+.statistics-chart {
+  min-width: 0;
+  position: relative;
+}
+.statistics-plot {
+  height: 212px;
+  overflow-x: clip;
+}
+.statistics-empty {
+  text-align: center;
+}
+.statistics-data summary {
+  cursor: pointer;
+  width: max-content;
+  padding: 8px 4px;
+}
+.statistics-data table {
+  width: 100%;
+  text-align: left;
+}
+.statistics-data td,
+.statistics-data th {
+  padding: 4px;
+}
+.statistics-skeleton {
+  min-height: 212px;
+  border-radius: 10px;
+  background: var(--surface-raised);
+}
+.statistics-skeleton--totals {
+  min-height: 120px;
+}
+@media (max-width: 767px) {
+  .statistics-panel {
+    margin-inline: 16px;
+  }
+  .statistics-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .statistics-totals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .statistics-skeleton--totals {
+    min-height: 72px;
+  }
+  .statistics-plot {
+    height: 190px;
+  }
+}

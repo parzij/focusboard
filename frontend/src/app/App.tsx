@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SessionProvider, useSession } from "../features/auth/context";
 import { AuthPage } from "../pages/auth/AuthPage";
+import { ProfilePage } from "../pages/profile/ProfilePage";
 import { HomePage } from "../pages/home/HomePage";
 import {
   Button,
@@ -48,10 +49,11 @@ function Guard({ privateRoute = false }: { privateRoute?: boolean }) {
   );
 }
 
-function Home() {
+function Workspace({ profile = false }: { profile?: boolean }) {
   const { state } = useSession();
+  const Page = profile ? ProfilePage : HomePage;
   return state.status === "authenticated" ? (
-    <HomePage key={state.user.id} user={state.user} />
+    <Page key={state.user.id} user={state.user} />
   ) : null;
 }
 
@@ -68,7 +70,8 @@ export function App() {
               <Route path="/auth" element={<AuthPage />} />
             </Route>
             <Route element={<Guard privateRoute />}>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<Workspace />} />
+              <Route path="/profile" element={<Workspace profile />} />
             </Route>
             <Route path="*" element={<Navigate replace to="/" />} />
           </Routes>

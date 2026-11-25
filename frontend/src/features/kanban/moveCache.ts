@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { Task } from "../../entities/task/task";
+import { statisticsKey } from "../statistics/model";
 import { moveTask, type Destination } from "./order";
 
 type Move = { id: string; destination: Destination };
@@ -29,7 +30,7 @@ export async function commitBoardMove(
       if (
         snapshot.find((task) => task.id === id)?.status !== destination.status
       )
-        void cache.invalidateQueries({ queryKey: ["statistics", key[1]] });
+        void cache.invalidateQueries({ queryKey: statisticsKey(key[1]) });
     }
   } catch (error) {
     if (current()) {

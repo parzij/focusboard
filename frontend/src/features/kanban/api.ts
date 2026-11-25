@@ -7,6 +7,7 @@ import {
 import { useSession } from "../auth/context";
 import type { Task, TaskInput } from "../../entities/task/task";
 
+import { statisticsKey } from "../statistics/model";
 import type { Destination } from "./order";
 import { commitBoardMove } from "./moveCache";
 
@@ -50,6 +51,9 @@ export function useTaskMutations(userId: string) {
   }
   const syncBoard = async (id: string, task?: Task) => {
     const query = boardQuery();
+    const previousStatus = cache
+      .getQueryData<Task[]>(key)
+      ?.find((item) => item.id === id)?.status;
     if (!query || session.aborted) return;
     await cache.cancelQueries({ queryKey: key });
     if (session.aborted || boardQuery() !== query) return;
@@ -73,6 +77,12 @@ export function useTaskMutations(userId: string) {
       return task ? [...remaining, task] : remaining;
     });
     void cache.invalidateQueries({ queryKey: key });
+    if (
+      task &&
+      (task.status === "done" ||
+        (previousStatus && previousStatus !== task.status))
+    )
+      void cache.invalidateQueries({ queryKey: statisticsKey(userId) });
   };
 
   const options = { scope, mutationKey: boardMutationKey(userId) };
