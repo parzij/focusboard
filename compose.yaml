@@ -1,0 +1,59 @@
+x-backend: &backend
+  image: ${COMPOSE_PROJECT_NAME:-focusboard}-backend:local
+  build:
+    context: ./backend
+
+services:
+  db:
+    image: postgres:18.4-trixie@sha256:a02db8cac496f15b094798a38254f14d6e00741f709360e5e00bb6668ea31636
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-focusboard}
+      POSTGRES_USER: ${POSTGRES_USER:-focusboard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  migrate:
+    <<: *backend
+    command: ["/usr/local/bin/migrate", "up"]
+    environment: &database
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
+      DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT:-3s}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    <<: *backend
+    environment:
+      <<: *database
+      HTTP_ADDR: ":${API_CONTAINER_PORT:-8080}"
+      HTTP_READ_HEADER_TIMEOUT: ${HTTP_READ_HEADER_TIMEOUT:-5s}
+      HTTP_READ_TIMEOUT: ${HTTP_READ_TIMEOUT:-10s}
+      HTTP_WRITE_TIMEOUT: ${HTTP_WRITE_TIMEOUT:-15s}
+      HTTP_IDLE_TIMEOUT: ${HTTP_IDLE_TIMEOUT:-1m}
+      HTTP_SHUTDOWN_TIMEOUT: ${HTTP_SHUTDOWN_TIMEOUT:-5s}
+      DB_CHECK_TIMEOUT: ${DB_CHECK_TIMEOUT:-1s}
+      DB_POOL_MAX_CONNS: ${DB_POOL_MAX_CONNS:-10}
+      DB_POOL_MIN_CONNS: ${DB_POOL_MIN_CONNS:-0}
+      DB_MAX_CONN_IDLE_TIME: ${DB_MAX_CONN_IDLE_TIME:-5m}
+      DB_MAX_CONN_LIFETIME: ${DB_MAX_CONN_LIFETIME:-1h}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - target: ${API_CONTAINER_PORT:-8080}
+        published: "${API_PORT:-8080}"
+        host_ip: 127.0.0.1
+        protocol: tcp
+    stop_grace_period: "${API_STOP_GRACE_PERIOD:-15s}"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  postgres-data:
