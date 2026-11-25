@@ -1,12 +1,26 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useSession } from "../auth/context";
 import type { Task, TaskInput } from "../../entities/task/task";
 
+import type { Destination } from "./order";
+import { commitBoardMove } from "./moveCache";
+
 export const taskBoardKey = (userId: string) => ["tasks", userId] as const;
+
+const boardMutationKey = (userId: string) => ["task-write", userId] as const;
+const moveKey = (userId: string) =>
+  [...boardMutationKey(userId), "move"] as const;
 
 export function useTaskBoard(userId: string) {
   const { controller } = useSession();
+  const moving = useIsMutating({ mutationKey: moveKey(userId) }) > 0;
   return useQuery({
+    enabled: !moving,
     queryKey: taskBoardKey(userId),
     queryFn: async ({ signal }) => {
       const response = await controller.authorized<{ tasks: Task[] }>(
@@ -23,11 +37,22 @@ export function useTaskMutations(userId: string) {
   const cache = useQueryClient();
   const key = taskBoardKey(userId);
   const boardQuery = () => cache.getQueryCache().find({ queryKey: key });
+  const scope = { id: `task-board:${userId}` };
+  const session = controller.sessionSignal;
+  function write<T>(
+    path: `/${string}`,
+    method: string,
+    json?: unknown,
+    signal = session,
+  ) {
+    signal.throwIfAborted();
+    return controller.authorized<T>(path, { method, json, signal });
+  }
   const syncBoard = async (id: string, task?: Task) => {
     const query = boardQuery();
-    if (!query) return;
+    if (!query || session.aborted) return;
     await cache.cancelQueries({ queryKey: key });
-    if (boardQuery() !== query) return;
+    if (session.aborted || boardQuery() !== query) return;
 
     cache.setQueryData<Task[]>(key, (current) => {
       if (!current) return current;
@@ -50,23 +75,55 @@ export function useTaskMutations(userId: string) {
     void cache.invalidateQueries({ queryKey: key });
   };
 
+  const options = { scope, mutationKey: boardMutationKey(userId) };
   const create = useMutation({
-    mutationFn: (input: TaskInput) =>
-      controller.authorized<Task>("/tasks", { method: "POST", json: input }),
+    ...options,
+    mutationFn: (input: TaskInput) => write<Task>("/tasks", "POST", input),
     onSuccess: (task) => syncBoard(task.id, task),
   });
   const update = useMutation({
+    ...options,
     mutationFn: ({ id, input }: { id: string; input: TaskInput }) =>
-      controller.authorized<Task>(`/tasks/${id}`, {
-        method: "PATCH",
-        json: input,
-      }),
+      write<Task>(`/tasks/${id}`, "PATCH", input),
     onSuccess: (task) => syncBoard(task.id, task),
   });
   const remove = useMutation({
-    mutationFn: (id: string) =>
-      controller.authorized<void>(`/tasks/${id}`, { method: "DELETE" }),
+    ...options,
+    mutationFn: (id: string) => write<void>(`/tasks/${id}`, "DELETE"),
     onSuccess: (_, id) => syncBoard(id),
   });
-  return { create, update, remove };
+  const move = useMutation({
+    ...options,
+    mutationKey: moveKey(userId),
+    networkMode: "always",
+    mutationFn: async ({
+      id,
+      destination,
+    }: {
+      id: string;
+      destination: Destination;
+    }) => {
+      await commitBoardMove(
+        cache,
+        key,
+        session,
+        { id, destination },
+        async () => {
+          const signal = AbortSignal.any([
+            session,
+            AbortSignal.timeout(15_000),
+          ]);
+          const { tasks } = await write<{ tasks: Task[] }>(
+            `/tasks/${id}/move`,
+            "PATCH",
+            destination,
+            signal,
+          );
+          return tasks;
+        },
+      );
+    },
+  });
+  const busy = useIsMutating({ mutationKey: boardMutationKey(userId) }) > 0;
+  return { create, update, remove, move, busy };
 }

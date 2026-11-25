@@ -229,28 +229,69 @@ test("task board CRUD against the real Tasks API", async ({ page }) => {
   ).toBeVisible();
   for (const status of ["Not started", "In progress", "Finish", "Done"])
     await expect(page.getByRole("heading", { name: status })).toBeVisible();
-  await expect(page.getByText("No tasks yet.")).toBeVisible();
+  await expect(
+    page.getByText("No tasks here yet.", { exact: true }),
+  ).toHaveCount(4);
   await page.screenshot({
-    path: "test-results/stage6-board-empty-desktop.png",
+    path: "test-results/stage7-final-empty.png",
     fullPage: true,
   });
 
   await page.getByRole("button", { name: "Add task" }).first().click();
   const dialog = page.getByRole("dialog", { name: "Add task" });
   await page.screenshot({
-    path: "test-results/stage6-task-dialog-desktop.png",
+    path: "test-results/stage7-final-create.png",
     fullPage: true,
   });
   await dialog.getByLabel("Task title").fill("Review the first milestone");
   await dialog.getByLabel("Short note").fill("A private note");
-  await dialog.getByLabel("Due date").fill("2026-11-30");
+  const createDate = dialog.getByLabel("Due date", { exact: true });
+  await expect(createDate).toHaveAttribute("placeholder", "DD/MM/YYYY");
+  const icons = await dialog.locator(".field-end-icon").evaluateAll((nodes) =>
+    nodes.map((node) => {
+      const icon = node.getBoundingClientRect();
+      const field = node.closest(".field-with-icon")!.getBoundingClientRect();
+      return [
+        field.right - icon.right,
+        icon.top + icon.height / 2 - (field.top + field.height / 2),
+        icon.width,
+      ];
+    }),
+  );
+  expect(icons).toEqual([
+    [16, 0, 17],
+    [16, 0, 17],
+  ]);
+  await expect(
+    dialog.getByRole("button", { name: "Close dialog" }),
+  ).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(dialog.getByRole("button", { name: "Cancel" })).not.toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
+  );
+
+  await createDate.fill("29/02/2026");
   await dialog.getByRole("button", { name: "Create task" }).click();
+  await expect(
+    dialog.getByText("Enter a valid date as DD/MM/YYYY."),
+  ).toBeVisible();
+  await createDate.fill("30/11/2026");
+  const created = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/v1/tasks") &&
+      response.request().method() === "POST",
+  );
+  await dialog.getByRole("button", { name: "Create task" }).click();
+  expect((await created).request().postDataJSON().dueDate).toBe("2026-11-30");
+  await expect(dialog).toBeHidden();
+  await page.reload();
   const card = page.getByRole("button", {
     name: "Edit task: Review the first milestone",
   });
   await expect(card).toBeVisible();
+  await expect(card.locator("time")).toHaveText("30 Nov");
   await page.screenshot({
-    path: "test-results/stage6-board-desktop.png",
+    path: "test-results/stage7-final-board.png",
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -271,6 +312,23 @@ test("task board CRUD against the real Tasks API", async ({ page }) => {
   await expect(edit.getByLabel("Task title")).toHaveValue(
     "Review the first milestone",
   );
+  const editDate = edit.getByLabel("Due date", { exact: true });
+  await expect(editDate).toHaveValue("30/11/2026");
+  await editDate.fill("28/02/2028");
+  await edit.getByRole("button", { name: "Choose due date" }).click();
+  const calendar = edit.getByRole("group", { name: "Due date calendar" });
+  await expect(
+    calendar.getByRole("button", { name: "28 February 2028" }),
+  ).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await expect(
+    calendar.getByRole("button", { name: "29 February 2028" }),
+  ).toBeFocused();
+  await page.screenshot({ path: "test-results/stage7-final-calendar.png" });
+  await page.keyboard.press("Enter");
+  await expect(calendar).toBeHidden();
+  await expect(editDate).toHaveValue("29/02/2028");
+  await page.screenshot({ path: "test-results/stage7-final-edit.png" });
   let releaseRefresh!: () => void;
   const refreshGate = new Promise<void>((resolve) => {
     releaseRefresh = resolve;
@@ -281,7 +339,13 @@ test("task board CRUD against the real Tasks API", async ({ page }) => {
   });
   await edit.getByLabel("Task title").fill("Finish the first milestone");
   await edit.getByLabel("Status").selectOption("finish");
+  const edited = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      response.url().includes("/api/v1/tasks/"),
+  );
   await edit.getByRole("button", { name: "Save" }).click();
+  expect((await edited).request().postDataJSON().dueDate).toBe("2028-02-29");
   await expect(
     page.getByRole("button", { name: "Edit task: Finish the first milestone" }),
   ).toBeVisible();
@@ -311,6 +375,20 @@ test("task board CRUD against the real Tasks API", async ({ page }) => {
   await page
     .getByRole("button", { name: "Edit task: Finish the first milestone" })
     .click();
+  await expect(editDate).toHaveValue("29/02/2028");
+  await editDate.fill("");
+  const cleared = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      response.url().includes("/api/v1/tasks/"),
+  );
+  await edit.getByRole("button", { name: "Save" }).click();
+  expect((await cleared).request().postDataJSON().dueDate).toBeNull();
+  await expect(edit).toBeHidden();
+  await page
+    .getByRole("button", { name: "Edit task: Finish the first milestone" })
+    .click();
+  await expect(editDate).toHaveValue("");
   await page.getByRole("button", { name: "Delete", exact: true }).click();
   const confirmation = page
     .getByRole("dialog")
@@ -327,7 +405,9 @@ test("task board CRUD against the real Tasks API", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "My Productivity" }),
   ).toBeVisible();
-  await expect(page.getByText("No tasks yet.")).toBeVisible();
+  await expect(
+    page.getByText("No tasks here yet.", { exact: true }),
+  ).toHaveCount(4);
 
   await expect(
     page.getByRole("button", { name: "Add task", exact: true }),
@@ -338,20 +418,39 @@ test("task board CRUD against the real Tasks API", async ({ page }) => {
     ["finish", "Review the final draft", "rgb(63, 185, 80)"],
     ["done", "Submit the first milestone", "rgb(188, 140, 255)"],
   ]) {
+    const column = page.locator(`.board-column--${status}`);
+    await expect(column.getByText("No tasks here yet.")).toBeVisible();
+    const border = await column.evaluate((element, accent) => {
+      const expected = document.createElement("div");
+      expected.style.color = `color-mix(in srgb, ${accent} 64%, var(--surface))`;
+      element.append(expected);
+      const result = getComputedStyle(expected).color;
+      expected.remove();
+      return result;
+    }, color);
+    for (const side of ["top", "right", "bottom", "left"]) {
+      await expect(column).toHaveCSS(`border-${side}-color`, border);
+      await expect(column).toHaveCSS(`border-${side}-width`, "1px");
+    }
     await page.getByRole("button", { name: "Add task" }).click();
     await dialog.getByLabel("Task title").fill(title);
     await dialog.getByLabel("Status").selectOption(status);
     await dialog.getByRole("button", { name: "Create task" }).click();
-    const column = page.locator(`.board-column--${status}`);
     const saved = column.getByRole("button", { name: `Edit task: ${title}` });
     await expect(column.locator(".board-column__count")).toHaveText("1");
     for (const side of ["top", "right", "bottom", "left"]) {
-      await expect(saved).toHaveCSS(`border-${side}-color`, color);
-      await expect(saved).toHaveCSS(`border-${side}-width`, "1px");
+      await expect(saved.locator("..")).toHaveCSS(
+        `border-${side}-color`,
+        color,
+      );
+      await expect(saved.locator("..")).toHaveCSS(
+        `border-${side}-width`,
+        "1px",
+      );
     }
   }
   await page.screenshot({
-    path: "test-results/stage6-board-desktop.png",
+    path: "test-results/stage7-final-board.png",
     fullPage: true,
   });
   await page
@@ -376,7 +475,7 @@ test("task board CRUD against the real Tasks API", async ({ page }) => {
       .evaluate((node) => node.scrollWidth > node.clientWidth),
   ).toBe(true);
   await page.screenshot({
-    path: "test-results/stage6-board-mobile.png",
+    path: "test-results/stage7-final-mobile-board.png",
     fullPage: true,
   });
   await page.getByRole("button", { name: "Add task" }).first().click();
@@ -389,7 +488,7 @@ test("task board CRUD against the real Tasks API", async ({ page }) => {
     390,
   );
   await page.screenshot({
-    path: "test-results/stage6-task-dialog-mobile.png",
+    path: "test-results/stage7-final-mobile-create.png",
     fullPage: true,
   });
   await page.setViewportSize({ width: 320, height: 380 });

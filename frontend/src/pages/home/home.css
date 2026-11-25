@@ -142,7 +142,7 @@
   min-height: 360px;
   padding: 14px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--column-accent) 64%, var(--surface));
   border-radius: var(--radius-panel);
 }
 .board-column__header {
@@ -207,25 +207,96 @@
 }
 .task-card {
   display: grid;
-  justify-items: start;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: center;
   min-height: 68px;
-  width: 100%;
-  padding: 13px 14px;
-  text-align: left;
+  min-width: 0;
   color: var(--text);
   background: color-mix(in srgb, var(--task-accent) 5%, var(--surface-raised));
   border: 1px solid var(--task-accent);
   border-radius: 12px;
-  cursor: pointer;
   transition:
-    transform 180ms ease,
     background 180ms ease,
+    opacity 180ms ease,
     border-color 180ms ease;
 }
 .task-card:hover {
-  transform: translateY(-1px);
   background: color-mix(in srgb, var(--task-accent) 9%, var(--surface-raised));
+}
+.task-card__content {
+  display: grid;
+  justify-items: start;
+  align-content: center;
+  align-self: stretch;
+  gap: 8px;
+  padding: 10px 0 10px 14px;
+  text-align: left;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.task-card__handle {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  touch-action: none;
+  cursor: grab;
+}
+.task-card__handle:hover {
+  color: var(--text);
+}
+.task-card__handle[aria-disabled="true"] {
+  cursor: default;
+}
+[data-dragging] .task-card__handle {
+  cursor: grabbing;
+}
+.task-card[data-drag-source] {
+  opacity: 0.35;
+  border-style: dashed;
+}
+.task-card--overlay {
+  box-shadow: 0 8px 20px rgb(0 0 0 / 38%);
+  cursor: grabbing;
+}
+.task-card--overlay > svg {
+  justify-self: center;
+}
+.board-scroll[data-dragging] {
+  scroll-snap-type: none;
+}
+.board-column {
+  transition: border-color 180ms ease;
+}
+.board-column[data-drop-target] {
+  border-color: var(--column-accent);
+}
+.task-slot {
+  position: relative;
+  transition: padding-top 180ms ease;
+}
+.task-slot[data-insert-before] {
+  padding-top: 40px;
+}
+.task-slot[data-insert-before]::before,
+.task-insertion {
+  height: 30px;
+  border: 1px dashed var(--column-accent);
+  border-radius: 10px;
+  background: var(--column-background);
+}
+.task-slot[data-insert-before]::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .board-column,
+  .task-slot {
+    transition: none;
+  }
 }
 .task-card__title {
   font-size: 14px;
@@ -246,9 +317,6 @@
   font-size: 13px;
   text-align: center;
   line-height: 1.7;
-}
-.column-empty span {
-  font-size: 12px;
 }
 .task-skeleton {
   height: 68px;
@@ -323,12 +391,19 @@
   height: 44px;
   flex-shrink: 0;
   border-radius: 10px;
-  color: var(--text-muted);
   cursor: pointer;
 }
-.icon-button:hover {
-  color: var(--text);
-  background: var(--surface-raised);
+.task-dialog .icon-button,
+.task-dialog .task-cancel {
+  color: color-mix(in srgb, var(--danger) 60%, var(--text));
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+.task-dialog .task-cancel {
+  border-color: color-mix(in srgb, var(--danger) 26%, transparent);
+}
+.task-dialog .icon-button:hover,
+.task-dialog .task-cancel:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
 }
 .task-form {
   display: grid;
@@ -339,7 +414,7 @@
 }
 .task-form textarea,
 .task-form select,
-.task-date-input {
+.task-form .date-input input {
   width: 100%;
   min-height: 48px;
   padding: 11px 12px;
@@ -358,25 +433,19 @@
   color: var(--text-muted);
 }
 .task-form select {
+  appearance: none;
   cursor: pointer;
+}
+.task-form select,
+.task-form .date-input input {
+  padding-inline-end: 48px;
 }
 .task-form__row {
   display: grid;
   gap: 18px;
 }
-.task-date-input {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: var(--text-muted);
-}
-.task-date-input input {
-  min-width: 0;
-  width: 100%;
-  color: var(--text);
-  background: transparent;
-  border: 0;
-  font: inherit;
+.task-form .date-input input[aria-invalid="true"] {
+  border-color: var(--danger);
 }
 .task-dialog__footer,
 .task-dialog__actions {
@@ -499,7 +568,7 @@
   }
   .task-form textarea,
   .task-form select,
-  .task-date-input {
+  .task-form .date-input input {
     font-size: 16px;
   }
 }

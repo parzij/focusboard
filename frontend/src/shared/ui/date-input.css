@@ -1,0 +1,68 @@
+.field-with-icon {
+  position: relative;
+  --field-icon-inset: 16px;
+}
+
+.field-with-icon .field-end-icon {
+  position: absolute;
+  inset-inline-end: var(--field-icon-inset);
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-muted);
+}
+
+.date-input__trigger {
+  position: absolute;
+  inset: 2px 0 2px auto;
+  width: 48px;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+
+.date-input__calendar {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.date-input__month {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.date-input__days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  text-align: center;
+  gap: 2px;
+}
+
+.date-input__days span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.date-input__calendar button {
+  min-height: 36px;
+  min-width: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.date-input__month button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+}
+
+.date-input__calendar button:hover:not(:disabled) {
+  background: var(--surface-raised);
+}
+
+.date-input__calendar button[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px var(--focus);
+}

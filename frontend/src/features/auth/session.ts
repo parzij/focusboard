@@ -55,6 +55,10 @@ export class SessionController {
 
   snapshot = () => this.state;
 
+  get sessionSignal() {
+    return this.lifetime.signal;
+  }
+
   connect = () => {
     if (typeof BroadcastChannel === "undefined") return;
     const channel = new BroadcastChannel("focusboard-auth");
