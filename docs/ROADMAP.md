@@ -11,7 +11,7 @@
 | 4. API статистики | `feat/statistics-api` | Завершён. CI и слияние подтверждены в [PR #5](https://github.com/parzij/focusboard/pull/5) |
 | 5. Основа SPA и экран авторизации | `feat/frontend-auth` | Завершён после согласованной правки логотипа; PR #6 слит в `master` (`43c68e6`) |
 | 6. Доска и формы задач | `feat/kanban-board` | Завершён. Владелец подтвердил приёмку, [PR #7](https://github.com/parzij/focusboard/pull/7) слит в `master` (`a2f8d9e`), [CI](https://github.com/parzij/focusboard/actions/runs/45630310918) прошёл |
-| 7. Перетаскивание | `feat/drag-and-drop` | Реализация и локальные проверки завершены, ожидается ручная приёмка |
+| 7. Перетаскивание | `feat/drag-and-drop` | [PR #8](https://github.com/parzij/focusboard/pull/8) открыт, локальные проверки прошли, ожидается ручная приёмка |
 | 8. Статистика, профиль и адаптивность | `feat/statistics-profile` | Запланирован |
 | 9. Подготовка MVP v1.0.0 | `chore/release-v1.0.0` | Запланирован |
 | 10. PWA | Ветка отдельной согласованной задачи | После принятия MVP |
