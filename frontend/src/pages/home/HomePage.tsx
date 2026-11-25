@@ -36,7 +36,7 @@ export function HomePage({ user }: { user: User }) {
           </div>
           <span className="board-total">
             {board.data?.length ?? 0}{" "}
-            {board.data?.length === 1 ? "task" : "tasks"}
+            {board.data?.length === 1 ? "active task" : "active tasks"}
           </span>
         </div>
 

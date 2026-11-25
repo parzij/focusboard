@@ -1,35 +1,12 @@
 import { useState, type ComponentProps, type ReactNode } from "react";
 import { Eye, EyeOff, LockKeyhole, type LucideIcon } from "lucide-react";
 
+import logo from "../../assets/focusboard-logo.svg";
+
 export function Logo() {
   return (
     <span className="brand">
-      <span className="brand-mark">
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          aria-hidden="true"
-        >
-          <rect
-            x="3.5"
-            y="4"
-            width="17"
-            height="16"
-            rx="3"
-            stroke="currentColor"
-            strokeWidth="1.6"
-          />
-          <path
-            d="M9 4v16M12 12.5l2.2 2.2 3.8-4.2"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
+      <img className="brand-mark" src={logo} alt="" width={36} height={36} />
       FocusBoard
     </span>
   );

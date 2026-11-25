@@ -38,7 +38,7 @@ export function StatisticsPanel({ userId }: { userId: string }) {
           <h2 id="statistics-heading">
             <BarChart3 size={20} aria-hidden="true" /> Statistics
           </h2>
-          <p>Tasks completed over time.</p>
+          <p>Counts each task the first time it reaches Done.</p>
         </div>
         <div
           className="statistics-period"

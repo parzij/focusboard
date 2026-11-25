@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="120 90 1040 1040" role="img" aria-labelledby="logo-title logo-desc">
+  <title id="logo-title">FocusBoard</title>
+  <desc id="logo-desc">Four interlocking rounded task tiles in slate gray, blue, green and purple.</desc>
+  <defs>
+    <linearGradient id="gray" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#aab6cb"/><stop offset=".46" stop-color="#78849c"/><stop offset="1" stop-color="#424d65"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2=".85" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#55ed86"/><stop offset=".4" stop-color="#19ce67"/><stop offset="1" stop-color="#00ad68"/>
+    </linearGradient>
+    <linearGradient id="purple" x1="0" y1=".72" x2="1" y2=".1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#5635e5"/><stop offset=".55" stop-color="#8a42f0"/><stop offset="1" stop-color="#ba6af5"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2=".9" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#20c4f7"/><stop offset=".42" stop-color="#079cf4"/><stop offset="1" stop-color="#0555e7"/>
+    </linearGradient>
+    <linearGradient id="gray-edge" x2=".8" y2="1"><stop stop-color="#68748b"/><stop offset="1" stop-color="#343e54"/></linearGradient>
+    <linearGradient id="green-edge" x2=".8" y2="1"><stop stop-color="#08a963"/><stop offset="1" stop-color="#008b57"/></linearGradient>
+    <linearGradient id="purple-edge" x2="1" y2="1"><stop stop-color="#4930b8"/><stop offset="1" stop-color="#7134d5"/></linearGradient>
+    <linearGradient id="blue-edge" x2="1" y2="1"><stop stop-color="#078fdf"/><stop offset="1" stop-color="#0346cf"/></linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2=".6" y2="1"><stop stop-color="#ffffff" stop-opacity=".36"/><stop offset=".48" stop-color="#ffffff" stop-opacity=".05"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="white" x1="0" y1="0" x2=".65" y2="1"><stop stop-color="#fff" stop-opacity=".93"/><stop offset="1" stop-color="#fff" stop-opacity=".72"/></linearGradient>
+    <linearGradient id="green-line" x2=".8" y2="1"><stop stop-color="#ddffec"/><stop offset="1" stop-color="#a7f6cc"/></linearGradient>
+    <linearGradient id="purple-line" x2=".8" y2="1"><stop stop-color="#f5e4ff"/><stop offset="1" stop-color="#d8b8ff"/></linearGradient>
+    <linearGradient id="blue-line" x2=".8" y2="1"><stop stop-color="#f1fbff"/><stop offset="1" stop-color="#b4e4ff"/></linearGradient>
+    <path id="gray-tile" d="M310 344 H595 Q641 344 636 391 L604 555 Q589 619 510 638 L316 653 C212 663 147 607 145 524 C137 430 213 344 310 344Z"/>
+    <path id="green-tile" d="M449 596 L614 568 Q666 559 654 622 L584 959 C572 1043 513 1098 437 1098 C349 1100 283 1047 283 957 L288 813 C290 700 342 617 449 596Z"/>
+    <path id="purple-tile" d="M715 564 L963 550 C1060 543 1125 608 1120 695 C1118 789 1046 851 958 857 L591 873 L621 698 C632 617 653 576 715 564Z"/>
+    <path id="blue-tile" d="M757 113 C852 106 920 164 920 260 L915 442 C913 500 883 543 831 556 L615 596 C576 604 547 576 555 531 L583 302 C596 197 663 120 757 113Z"/>
+    <clipPath id="green-clip"><use href="#green-tile"/></clipPath>
+    <clipPath id="purple-clip"><use href="#purple-tile"/></clipPath>
+    <clipPath id="gray-clip"><use href="#gray-tile"/></clipPath>
+    <radialGradient id="overlap"><stop stop-color="#14162c" stop-opacity=".40"/><stop offset=".45" stop-color="#14162c" stop-opacity=".19"/><stop offset="1" stop-color="#14162c" stop-opacity="0"/></radialGradient>
+  </defs>
+  <!-- Slate tile -->
+  <use href="#gray-tile" transform="translate(2 8)" fill="url(#gray-edge)"/>
+  <use href="#gray-tile" fill="url(#gray)" stroke="#b9c3d4" stroke-opacity=".45" stroke-width="3"/>
+  <g transform="rotate(-5 370 490)" fill="url(#white)">
+    <rect x="260" y="436" width="226" height="46" rx="23"/>
+    <rect x="253" y="512" width="139" height="39" rx="19.5"/>
+  </g>
+  <!-- Green tile -->
+  <use href="#green-tile" transform="translate(9 13)" fill="url(#green-edge)"/>
+  <use href="#green-tile" fill="url(#green)" stroke="#8bf7ab" stroke-opacity=".32" stroke-width="3"/>
+  <ellipse cx="624" cy="593" rx="132" ry="92" fill="url(#overlap)" clip-path="url(#green-clip)"/>
+  <g transform="rotate(-4 465 777)" fill="url(#green-line)">
+    <rect x="363" y="719" width="200" height="45" rx="22.5"/>
+    <rect x="358" y="798" width="137" height="39" rx="19.5"/>
+  </g>
+  <path d="M416 934 L447 964 L510 900" fill="none" stroke="#ecfff4" stroke-width="31" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Violet tile -->
+  <use href="#purple-tile" transform="translate(3 11)" fill="url(#purple-edge)"/>
+  <use href="#purple-tile" fill="url(#purple)" stroke="#d7b4ff" stroke-opacity=".36" stroke-width="3"/>
+  <ellipse cx="738" cy="567" rx="204" ry="76" transform="rotate(-10 738 567)" fill="url(#overlap)" clip-path="url(#purple-clip)"/>
+  <g transform="rotate(-4 854 703)" fill="url(#purple-line)">
+    <rect x="728" y="643" width="255" height="46" rx="23"/>
+    <rect x="720" y="721" width="161" height="39" rx="19.5"/>
+  </g>
+  <!-- Blue tile -->
+  <use href="#blue-tile" transform="translate(7 9)" fill="url(#blue-edge)"/>
+  <use href="#blue-tile" fill="url(#blue)" stroke="#8ce1ff" stroke-opacity=".36" stroke-width="3"/>
+  <g transform="rotate(-6 756 385)" fill="url(#blue-line)">
+    <rect x="650" y="323" width="218" height="46" rx="23"/>
+    <rect x="641" y="405" width="145" height="40" rx="20"/>
+  </g>
+</svg>

@@ -90,6 +90,15 @@ test("historical completions survive reopening and deletion", async ({
 
   await task(page, "Release milestone", "finish");
   await expect(statistic(page, "This week")).toHaveText("0");
+  for (const title of ["Delivery", "Review", "Planning", "Follow-up"])
+    await task(page, title, "done");
+  await task(page, "Edited completion", "finish");
+  await expect(statistic(page, "This week")).toHaveText("4");
+  await edit(page, "Edited completion", "done");
+  await expect(page.getByText("6 active tasks", { exact: true })).toBeVisible();
+  await expect(statistic(page, "This week")).toHaveText("5");
+  await expect(statistic(page, "This month")).toHaveText("5");
+  await capture(page, "counts-before");
   const handle = page.getByRole("button", {
     name: "Move task: Release milestone",
   });
@@ -107,21 +116,20 @@ test("historical completions survive reopening and deletion", async ({
     page.getByRole("status").filter({ hasText: "Done, position 1" }),
   ).toBeVisible();
   await page.keyboard.press("Space");
-  await expect(statistic(page, "This week")).toHaveText("1");
-  await expect(statistic(page, "This month")).toHaveText("1");
+  await expect(statistic(page, "This week")).toHaveText("6");
+  await expect(statistic(page, "This month")).toHaveText("6");
+  await expect(page.getByText("6 active tasks", { exact: true })).toBeVisible();
+  await capture(page, "counts-after");
   await edit(page, "Release milestone", "finish");
   await edit(page, "Release milestone", "done");
-
-  await task(page, "Deliver the review", "done");
-  await task(page, "Prepare follow-up notes", "finish");
-  await task(page, "Draft the next plan", "in_progress");
-  await task(page, "Plan the next cycle", "not_started");
-  await expect(statistic(page, "This week")).toHaveText("2");
-  await expect(statistic(page, "This month")).toHaveText("2");
+  await expect(statistic(page, "This week")).toHaveText("6");
   await capture(page, "days");
   await statistics.getByRole("button", { name: "Weeks" }).click();
-  await expect(statistic(page, "This week")).toHaveText("2");
+  await expect(statistic(page, "This week")).toHaveText("6");
   await capture(page, "weeks");
+  await page.reload();
+  await expect(page.getByText("6 active tasks", { exact: true })).toBeVisible();
+  await expect(statistic(page, "This week")).toHaveText("6");
   await page
     .getByRole("button", { name: "Edit task: Release milestone" })
     .click();
@@ -135,7 +143,8 @@ test("historical completions survive reopening and deletion", async ({
     .click();
   await expect(page.getByRole("dialog")).toBeHidden();
   await page.reload();
-  await expect(statistic(page, "This week")).toHaveText("2");
+  await expect(page.getByText("5 active tasks", { exact: true })).toBeVisible();
+  await expect(statistic(page, "This week")).toHaveText("6");
   for (const width of [320, 375, 390, 430, 768, 1024, 1280, 1440, 1920]) {
     await page.setViewportSize({ width, height: 844 });
     expect(

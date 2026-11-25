@@ -109,3 +109,5 @@ bash scripts/test-frontend-e2e.sh
 - [Архитектура](docs/ARCHITECTURE.md) и [решения](docs/DECISIONS.md)
 - [База данных](docs/DATABASE.md), [REST API](docs/API.md) и [дизайн-система](docs/DESIGN_SYSTEM.md)
 - [История изменений](docs/CHANGELOG.md)
+
+Счётчик active tasks показывает все текущие задачи на доске, а Statistics считает каждую задачу при первом попадании в Done. Поэтому на доске может быть 6 активных задач и только 5 завершений за текущий период.
