@@ -102,9 +102,10 @@ render_api=$(compose run --detach --no-deps --service-ports -e "DATABASE_URL=$re
 api_url="http://$(docker port "$render_api" 8080/tcp)/api/v1"
 probe ready 200 "$ready"
 render_logs=$(docker logs "$render_api" 2>&1)
-[[ $render_logs == *'Applying database migrations...'*'"applied":4'*'Starting FocusBoard API...'* ]]
+# Both JSON log entries use stderr; Docker can interleave stdout differently.
+[[ $render_logs == *'"applied":4'*'"msg":"Starting API server"'* ]]
 [[ $(docker exec "$render_api" id -u) == 65532 ]]
-[[ $(docker exec "$render_api" readlink /proc/1/exe) == /usr/local/bin/api ]]
+[[ $(docker exec "$render_api" cat /proc/1/cmdline | tr -d '\000') == /usr/local/bin/api ]]
 sql -d render_smoke -c 'CREATE TABLE restart_probe (id integer PRIMARY KEY); INSERT INTO restart_probe VALUES (42);'
 docker stop "$render_api"
 [[ $(docker inspect --format '{{.State.ExitCode}}' "$render_api") == 0 ]]
