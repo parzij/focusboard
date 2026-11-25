@@ -115,4 +115,4 @@ bash scripts/test-frontend-e2e.sh
 
 ## Deployment Status
 
-The functional MVP is complete. Production deployment and release are in preparation. Caddy, public DNS and HTTPS, and the production release workflow are part of the next stage. See the [preliminary deployment plan](docs/DEPLOYMENT_PLAN.md).
+The functional MVP is available at [FocusBoard on Netlify](https://focusboard-app.netlify.app). Netlify serves the SPA and proxies same-origin API requests to [Render](https://focusboard-api-l3rn.onrender.com/api/v1/health). Render runs the Go API, and Neon PostgreSQL in Frankfurt stores data. The v1.0.0 release is pending final acceptance. See the [deployment guide](docs/DEPLOYMENT_PLAN.md).

@@ -411,11 +411,11 @@ Argon2id с индивидуальной случайной солью не ме
 - Любой SELECT/UPDATE/DELETE пользовательского объекта ограничен владельцем; для чужой задачи ответ 404. Статистика вычисляется только по задачам текущего пользователя.
 - Сервер валидирует каждое поле независимо от frontend. JSON body ограничить, например 64 KiB; декодировать ровно один объект и отклонять неизвестные поля там, где это предусмотрено контрактом.
 - SQL — только с аргументами; не конкатенировать ввод. React выводит описание как текст, не через `dangerouslySetInnerHTML`.
-- Auth endpoints с cookie защищать проверкой Origin (совпадение с настроенным origin приложения для browser mutation), SameSite и запретом широкого CORS. Caddy обслуживает frontend и API с одного origin. Для прямого cross-origin режима не разрешать `*` вместе с credentials.
+- Auth endpoints с cookie защищать проверкой Origin (совпадение с настроенным origin приложения для browser mutation), SameSite и запретом широкого CORS. В выбранном облачном окружении Netlify проксирует API с origin frontend. Caddy остаётся вариантом self-hosted. Для прямого cross-origin режима не разрешать `*` вместе с credentials.
 - Ограничение частоты запросов к login/register/refresh (например in-memory rate limiter с TTL, ограниченным объёмом и отдельным лимитом на IP/аккаунт там, где уместно). Учитывать доверенную цепочку proxy, не доверять произвольному X-Forwarded-For. Возвращать 429 и Retry-After при применимом лимите.
 - HTTPS в production, CSP без unsafe-inline scripts там, где позволяет выбранная сборка, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, защита от встраивания через `frame-ancestors 'none'`. Не раскрывать внутренние ошибки.
 - Секреты в переменных окружения/secret management; `.env` не коммитить. Не логировать пароли, cookies, JWT, refresh-токены, строки подключения и содержимое пользовательских задач без необходимости.
-- PostgreSQL не доступна из публичной сети. В production наружу открывается только Caddy (80/443). Использовать отдельного ограниченного пользователя БД для API; миграциям можно выделить отдельные credentials.
+- PostgreSQL не доступна из публичной сети. В облачном варианте база Neon доступна backend по TLS, а frontend обращается к API через Netlify. При self-hosted наружу открывается только Caddy (80/443). Использовать отдельного ограниченного пользователя БД для API; миграциям можно выделить отдельные credentials.
 
 ## 8. REST API
 
@@ -695,7 +695,7 @@ Line-height ориентировочно 1.4–1.5. Не ужимать текс
 
 ### 11.1. Навигация и layout
 
-Маршруты: `/auth` (public), `/` (Home, protected), `/profile` (protected). Неавторизованный пользователь на `/` или `/profile` перенаправляется на `/auth`, авторизованный на `/auth` — на `/`. Неизвестный маршрут — аккуратный Not found или redirect на Home с учётом auth. Browser refresh должен работать для прямого URL благодаря SPA fallback Caddy.
+Маршруты: `/auth` (public), `/` (Home, protected), `/profile` (protected). Неавторизованный пользователь на `/` или `/profile` перенаправляется на `/auth`, авторизованный на `/auth` — на `/`. Неизвестный маршрут — аккуратный Not found или redirect на Home с учётом auth. Browser refresh должен работать для прямого URL благодаря SPA fallback Netlify или Caddy при self-hosted.
 
 Главная страница — основное рабочее пространство, без бокового меню. Шапка: логотип + FocusBoard слева, `Home` (на широком экране), одна основная кнопка `+ Add task` и круглый аватар справа. Аватар открывает короткое меню `Profile` / `Sign out`. Mobile: компактный логотип, `Add task` и аватар; не дублировать навигацию и action в нескольких местах. На Home можно оставить заголовок `My Productivity` и одну строку пояснения из макета; при нехватке места вторичный текст не мешает доске.
 
@@ -842,7 +842,9 @@ Router guards работают после bootstrap refresh, не допуска
 
 ### 17.1. Docker Compose
 
-Сервисы production-like Compose:
+Текущее облачное окружение: Netlify обслуживает SPA на `https://focusboard-app.netlify.app` и проксирует `/api/v1/*` на `https://focusboard-api-l3rn.onrender.com`. Правило API в `frontend/public/_redirects` идёт перед SPA fallback, полный путь API сохраняется. Backend Render запускается через `/usr/local/bin/start-render`, выполняющий Goose Up до API. PostgreSQL — Neon, Frankfurt, доступ через TLS. Проверки Origin, JWT и cookies сохраняются; браузер использует относительные запросы. Облачные сервисы используют бесплатные тарифы, а выпуск v1.0.0 требует ручной приёмки.
+
+Сервисы production-like Compose для локального и резервного self-hosted варианта:
 
 | Service | Назначение |
 |---|---|
