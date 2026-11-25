@@ -9,7 +9,7 @@
 | 2. Авторизация и пользователи | `feat/authentication` | Завершён. CI и слияние подтверждены в [PR #3](https://github.com/parzij/focusboard/pull/3) |
 | 3. Задачи и порядок | `feat/task-management` | Завершён. CI и слияние подтверждены в [PR #4](https://github.com/parzij/focusboard/pull/4) |
 | 4. API статистики | `feat/statistics-api` | Завершён. CI и слияние подтверждены в [PR #5](https://github.com/parzij/focusboard/pull/5) |
-| 5. Основа SPA и экран авторизации | `feat/frontend-auth` | Реализован. Ожидает ручной визуальной приёмки |
+| 5. Основа SPA и экран авторизации | `feat/frontend-auth` | Реализован. Ожидает ручной визуальной приёмки в [PR #6](https://github.com/parzij/focusboard/pull/6) |
 | 6. Доска и формы задач | `feat/kanban-board` | Запланирован |
 | 7. Перетаскивание | `feat/drag-and-drop` | Запланирован |
 | 8. Статистика, профиль и адаптивность | `feat/statistics-profile` | Запланирован |
