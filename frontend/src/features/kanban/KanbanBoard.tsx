@@ -24,7 +24,6 @@ type ColumnProps = Omit<BoardProps, "onMove"> & {
   status: TaskStatus;
   preview: Destination | null;
   activeId?: string;
-  empty: boolean;
 };
 
 function Column({
@@ -36,7 +35,6 @@ function Column({
   unavailable,
   busy,
   onOpen,
-  empty,
 }: ColumnProps) {
   const config = taskStatuses.find(({ value }) => value === status)!;
   const Icon = config.icon;
@@ -100,17 +98,7 @@ function Column({
           !unavailable &&
           tasks.length === 0 &&
           position === undefined && (
-            <div className="column-empty">
-              {status === "not_started" && empty ? (
-                <>
-                  No tasks yet.
-                  <br />
-                  <span>Add one to get started.</span>
-                </>
-              ) : (
-                "No tasks here yet."
-              )}
-            </div>
+            <div className="column-empty">No tasks here yet.</div>
           )}
         {position !== undefined && !atSource && !markerBefore && (
           <div className="task-insertion" aria-hidden="true" />
@@ -187,7 +175,6 @@ export function KanbanBoard({
               unavailable={unavailable}
               busy={busy}
               onOpen={onOpen}
-              empty={shown.length === 0}
             />
           ))}
         </div>

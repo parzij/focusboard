@@ -199,6 +199,10 @@ test("mouse drops outside, applies optimistically, then rolls back", async ({
     "data-drop-target",
     "true",
   );
+  await expect(column(page, "in_progress")).toHaveCSS(
+    "border-top-color",
+    "rgb(88, 166, 255)",
+  );
   await page.screenshot({ path: "test-results/stage7-overlay.png" });
   await page.mouse.up();
   await expect(order(page, "in_progress")).toHaveText(["Mouse task"]);

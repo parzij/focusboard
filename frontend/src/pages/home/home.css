@@ -142,7 +142,7 @@
   min-height: 360px;
   padding: 14px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--column-accent) 64%, var(--surface));
   border-radius: var(--radius-panel);
 }
 .board-column__header {
@@ -318,9 +318,6 @@
   text-align: center;
   line-height: 1.7;
 }
-.column-empty span {
-  font-size: 12px;
-}
 .task-skeleton {
   height: 68px;
   border-radius: 12px;
@@ -394,12 +391,19 @@
   height: 44px;
   flex-shrink: 0;
   border-radius: 10px;
-  color: var(--text-muted);
   cursor: pointer;
 }
-.icon-button:hover {
-  color: var(--text);
-  background: var(--surface-raised);
+.task-dialog .icon-button,
+.task-dialog .task-cancel {
+  color: color-mix(in srgb, var(--danger) 60%, var(--text));
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+.task-dialog .task-cancel {
+  border-color: color-mix(in srgb, var(--danger) 26%, transparent);
+}
+.task-dialog .icon-button:hover,
+.task-dialog .task-cancel:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
 }
 .task-form {
   display: grid;
@@ -410,7 +414,7 @@
 }
 .task-form textarea,
 .task-form select,
-.task-date-input {
+.task-form .date-input input {
   width: 100%;
   min-height: 48px;
   padding: 11px 12px;
@@ -429,25 +433,19 @@
   color: var(--text-muted);
 }
 .task-form select {
+  appearance: none;
   cursor: pointer;
+}
+.task-form select,
+.task-form .date-input input {
+  padding-inline-end: 48px;
 }
 .task-form__row {
   display: grid;
   gap: 18px;
 }
-.task-date-input {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: var(--text-muted);
-}
-.task-date-input input {
-  min-width: 0;
-  width: 100%;
-  color: var(--text);
-  background: transparent;
-  border: 0;
-  font: inherit;
+.task-form .date-input input[aria-invalid="true"] {
+  border-color: var(--danger);
 }
 .task-dialog__footer,
 .task-dialog__actions {
@@ -570,7 +568,7 @@
   }
   .task-form textarea,
   .task-form select,
-  .task-date-input {
+  .task-form .date-input input {
     font-size: 16px;
   }
 }

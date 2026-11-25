@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarDays, X } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { ChevronDown, X } from "lucide-react";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import type { Task, TaskInput } from "../../entities/task/task";
 import { taskStatuses } from "../../entities/task/status";
 import { ApiError } from "../../shared/api/client";
 import { Button, FormError, FormField, Input } from "../../shared/ui/controls";
+
+import { DateInput } from "../../shared/ui/DateInput";
+import { toDisplayDate, toISODate } from "../../shared/ui/date-value";
 
 const schema = z.object({
   title: z
@@ -23,7 +26,12 @@ const schema = z.object({
     )
     .refine((value) => !value.includes("\0"), "Remove unsupported characters."),
   status: z.enum(["not_started", "in_progress", "finish", "done"]),
-  dueDate: z.string(),
+  dueDate: z
+    .string()
+    .refine(
+      (value) => !value || toISODate(value) !== null,
+      "Enter a valid date as DD/MM/YYYY.",
+    ),
 });
 type Values = z.infer<typeof schema>;
 
@@ -44,15 +52,16 @@ export function TaskDialog({
   const [confirm, setConfirm] = useState<"discard" | "delete" | null>(null);
   const [requestError, setRequestError] = useState("");
   const [busy, setBusy] = useState(false);
-  const { register, handleSubmit, setError, formState } = useForm<Values>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      title: task?.title ?? "",
-      description: task?.description ?? "",
-      status: task?.status ?? "not_started",
-      dueDate: task?.dueDate ?? "",
-    },
-  });
+  const { control, register, handleSubmit, setError, formState } =
+    useForm<Values>({
+      resolver: zodResolver(schema),
+      defaultValues: {
+        title: task?.title ?? "",
+        description: task?.description ?? "",
+        status: task?.status ?? "not_started",
+        dueDate: toDisplayDate(task?.dueDate ?? null),
+      },
+    });
   const { isDirty } = formState;
 
   useEffect(() => {
@@ -84,7 +93,7 @@ export function TaskDialog({
   const submit = async (values: Values) => {
     setBusy(true);
     setRequestError("");
-    const input: TaskInput = { ...values, dueDate: values.dueDate || null };
+    const input: TaskInput = { ...values, dueDate: toISODate(values.dueDate) };
     try {
       if (task) await onUpdate(task.id, input);
       else await onCreate(input);
@@ -174,7 +183,11 @@ export function TaskDialog({
                 : "Your changes will be lost."}
             </p>
             <div className="task-dialog__actions">
-              <Button variant="secondary" onClick={() => setConfirm(null)}>
+              <Button
+                variant="secondary"
+                className="task-cancel"
+                onClick={() => setConfirm(null)}
+              >
                 Cancel
               </Button>
               <Button
@@ -228,27 +241,42 @@ export function TaskDialog({
                 hint="Optional"
                 error={formState.errors.dueDate?.message}
               >
-                <span className="task-date-input">
-                  <CalendarDays size={17} aria-hidden="true" />
-                  <input
-                    id="task-due-date"
-                    type="date"
-                    {...register("dueDate")}
-                  />
-                </span>
+                <Controller
+                  control={control}
+                  name="dueDate"
+                  render={({ field, fieldState }) => (
+                    <DateInput
+                      {...field}
+                      id="task-due-date"
+                      aria-invalid={fieldState.invalid}
+                      aria-describedby={
+                        fieldState.invalid
+                          ? "task-due-date-hint task-due-date-error"
+                          : "task-due-date-hint"
+                      }
+                    />
+                  )}
+                />
               </FormField>
               <FormField
                 id="task-status"
                 label="Status"
                 error={formState.errors.status?.message}
               >
-                <select id="task-status" {...register("status")}>
-                  {taskStatuses.map((status) => (
-                    <option key={status.value} value={status.value}>
-                      {status.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="field-with-icon">
+                  <select id="task-status" {...register("status")}>
+                    {taskStatuses.map((status) => (
+                      <option key={status.value} value={status.value}>
+                        {status.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    className="field-end-icon"
+                    size={17}
+                    aria-hidden="true"
+                  />
+                </div>
               </FormField>
             </div>
             {requestError && <FormError>{requestError}</FormError>}
@@ -263,7 +291,12 @@ export function TaskDialog({
                 </Button>
               )}
               <div className="task-dialog__actions">
-                <Button variant="secondary" type="button" onClick={askClose}>
+                <Button
+                  variant="secondary"
+                  className="task-cancel"
+                  type="button"
+                  onClick={askClose}
+                >
                   Cancel
                 </Button>
                 <Button

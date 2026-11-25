@@ -11,8 +11,9 @@ function content(task: Task) {
       {task.dueDate && (
         <time className="task-card__date" dateTime={task.dueDate}>
           <CalendarDays size={14} aria-hidden="true" />
-          {new Date(`${task.dueDate}T12:00:00`).toLocaleDateString("en", {
+          {new Date(`${task.dueDate}T00:00:00Z`).toLocaleDateString("en-GB", {
             month: "short",
+            timeZone: "UTC",
             day: "numeric",
           })}
         </time>
